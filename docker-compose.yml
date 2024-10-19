@@ -6,8 +6,14 @@ services:
       - "5171:5000"  # Backend API port
     environment:
       - DATABASE_URL=postgresql://postgres:your_password@gps_tracker_db:5432/gps_tracker
-      - HA_API_URL=http://your-home-assistant-url/api
-      - BEARER_TOKEN=your_static_token
+    #  - HA_API_URL=http://your-home-assistant-url/api
+      - HA_API_URL=https://haos.bonde.ninja/api
+    #  - HA_TOKEN=your_static_token
+      - HA_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIwN2RlYzllY2QyZDY0NmFiOTI5MTVkZmE3OWZmNmUyYiIsImlhdCI6MTcyOTM1MjEyMiwiZXhwIjoyMDQ0NzEyMTIyfQ.Ci8jyHRlb5JOtt8eob1F73TD-URW3NFqHNsZ15rSpXM
+    #  - HA_USERS=john_doe,jane_doe,another_doer
+    #  - HA_USERS=martin_bonde,glennie_bonde,noah_bonde
+      - HA_USERS=martin_bonde
+      - DROP_DB_ON_START=True  # Set to True to recreate the DB on startup
     volumes:
       - ./backend:/app
     depends_on:
