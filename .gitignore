@@ -1,0 +1,39 @@
+# Ignore Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# Ignore virtual environments
+venv/
+.env/
+
+# Ignore any local environment files
+*.env
+*.env.*
+
+# Ignore Docker-specific files
+docker-compose.override.yml
+*.log
+
+# Ignore PostgreSQL data directory
+volumes/
+postgres_data/
+
+# Ignore IDE/editor-specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore logs and temp files
+*.log
+*.tmp
+
+# Ignore build artifacts
+build/
+dist/
+*.egg-info
