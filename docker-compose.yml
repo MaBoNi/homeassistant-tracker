@@ -1,0 +1,37 @@
+services:
+  backend:
+    build: ./backend
+    container_name: gps_tracker_backend
+    ports:
+      - "5171:5000"  # Backend API port
+    environment:
+      - DATABASE_URL=postgresql://postgres:your_password@gps_tracker_db:5432/gps_tracker
+      - HA_API_URL=http://your-home-assistant-url/api
+      - BEARER_TOKEN=your_static_token
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: gps_tracker_frontend
+    ports:
+      - "5172:80"  # Frontend app port
+    depends_on:
+      - backend
+
+  db:
+    image: postgres:13
+    container_name: gps_tracker_db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=your_password
+      - POSTGRES_DB=gps_tracker
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5173:5432"  # PostgreSQL exposed port
+
+volumes:
+  postgres_data:
