@@ -3,8 +3,8 @@ import requests
 import logging
 from datetime import datetime
 from .db_manager import save_gps_log
+from config.config import Config
 import os
-
 
 HA_API_URL=os.getenv('HA_API_URL', 'http://your-home-assistant-url/api')
 HA_TOKEN=os.getenv('HA_TOKEN',  'your_static_token')
@@ -30,8 +30,8 @@ def fetch_and_save_location(user_entity):
             attributes = data.get('attributes', {})
             device_trackers = attributes.get('device_trackers', [])
 
-            if device_trackers:
-                device_tracker = device_trackers[0]  # Use the first device_tracker available
+            # Loop through each device tracker for the user
+            for device_tracker in device_trackers:
                 logger.info(f"Found device_tracker for {user_entity}: {device_tracker}")
 
                 # Step 2: Fetch the actual location data from the device_tracker
@@ -63,8 +63,6 @@ def fetch_and_save_location(user_entity):
                     logger.error(f"Failed to fetch data for {device_tracker}. Status Code: {device_response.status_code}")
                     logger.error(f"Device tracker URL: {device_tracker_url}")
                     logger.error(f"Headers: {headers}")
-            else:
-                logger.warning(f"No device_tracker found for {user_entity}")
         else:
             # Log detailed error information when fetching user entity fails
             logger.error(f"Failed to fetch data for {user_entity}. Status Code: {response.status_code}")

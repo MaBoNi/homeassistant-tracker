@@ -19,6 +19,10 @@ def save_gps_log(user, device, latitude, longitude, accuracy, timestamp):
     if user.startswith('person.'):
         user = user.replace('person.', '')
 
+    # Strip 'device_tracker.' prefix from the device if present
+    if device.startswith('device_tracker.'):
+        device = device.replace('device_tracker.', '')
+
     logger.info(f"Attempting to save GPS log for user: {user} and device: {device} with coordinates ({latitude}, {longitude})")
 
     try:
@@ -34,7 +38,7 @@ def save_gps_log(user, device, latitude, longitude, accuracy, timestamp):
 
         new_log = GPSLog(
             user=user,
-            device=device,
+            device = device.replace('device_tracker.', '').lower(),
             latitude=latitude,
             longitude=longitude,
             accuracy=accuracy,
@@ -45,10 +49,11 @@ def save_gps_log(user, device, latitude, longitude, accuracy, timestamp):
         logger.info(f"Saved GPS log for user: {user} and device: {device} at {timestamp}")
 
     except Exception as e:
+        # Roll back the session on error
         session.rollback()
         logger.error(f"Error saving GPS log for user: {user} on device: {device}: {str(e)}")
 
-def get_gps_logs(user, time_range):
+def get_gps_logs(user, time_range, device=None):
     try:
         # Strip 'person.' from the user if present
         if user.startswith('person.'):
@@ -70,9 +75,14 @@ def get_gps_logs(user, time_range):
         else:
             time_limit = None  # live (get the most recent entry)
 
-        if time_limit:
-            logger.info(f"Applying time filter: {time_limit}")
-            query = query.filter(GPSLog.timestamp >= time_limit)
+        if device:
+            logger.info(f"Applying device filter: {device.lower()}")
+            query = query.filter_by(device=device.lower())
+
+        # Apply device filter
+        if device:
+            logger.info(f"Applying device filter: {device.lower()}")
+            query = query.filter_by(device=device.lower())
         
         logs = query.order_by(desc(GPSLog.timestamp)).all()
         
