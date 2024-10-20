@@ -46,15 +46,17 @@ function fetchUsers() {
         document.getElementById('error').textContent = 'Error fetching users';
     });
 
-    // Add event listener to reload data when the user changes
+    // Add event listener to reload data when the user or time range changes
     userSelect.addEventListener('change', function() {
         fetchGPSData(userSelect.value);
     });
 }
 
-// Fetch GPS data for the selected user and plot it on the map
+// Fetch GPS data for the selected user and time range, and plot it on the map
 function fetchGPSData(selectedUser) {
-    const url = `${backendApiUrl}/api/gps-data?user=${selectedUser}&time_range=last_7_days`;  // URL with selected user
+    const timeSelect = document.getElementById('time-select');
+    const timeRange = timeSelect.value;
+    const url = `${backendApiUrl}/api/gps-data?user=${selectedUser}&time_range=${timeRange}`;  // URL with selected user and time range
 
     fetch(url, {
         headers: {
@@ -119,3 +121,9 @@ function fetchGPSData(selectedUser) {
         document.getElementById('error').textContent = 'Error fetching data';
     });
 }
+
+// Add event listener for time range selector to reload data
+document.getElementById('time-select').addEventListener('change', function() {
+    const userSelect = document.getElementById('user-select');
+    fetchGPSData(userSelect.value);  // Fetch data for the selected user when the time range changes
+});

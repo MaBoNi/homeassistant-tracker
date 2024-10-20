@@ -74,3 +74,20 @@ table tbody tr:hover {
     height: 400px;
     margin-top: 20px;
 }
+
+/* Updated selectors style */
+.selectors {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+#user-select, #time-select {
+    padding: 10px;
+    font-size: 16px;
+    background-color: #e0e7ff;
+    border: 1px solid #003366;
+    border-radius: 5px;
+    color: #003366;
+    margin-left: 10px;
+}
