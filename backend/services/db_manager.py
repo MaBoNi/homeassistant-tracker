@@ -96,3 +96,20 @@ def get_gps_logs(user, time_range, device=None):
     except Exception as e:
         session.rollback()
         logger.error(f"Error retrieving GPS logs for user: {user}: {str(e)}")
+
+def get_unique_users():
+    try:
+        users = session.query(GPSLog.user).distinct().all()
+        user_list = [user[0] for user in users]  # Extract user names from query results
+
+        if not user_list:
+            logger.info("No users found in GPS logs.")
+        else:
+            logger.info(f"Found {len(user_list)} unique users.")
+
+        return user_list
+
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error retrieving unique users: {str(e)}")
+        return []

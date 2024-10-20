@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Tracker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>GPS Tracker Data</h1>
+
+    <label for="user-select">Select User:</label>
+    <select id="user-select">
+        <!-- Users will be populated here dynamically -->
+    </select>
+
+    <div id="error"></div>  <!-- Error message will appear here -->
+
+    <table id="gps-data-table">
+        <thead>
+            <tr>
+                <th>User</th>
+                <th>Device</th>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Timestamp</th>
+                <th>Accuracy</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Data will be inserted here dynamically -->
+        </tbody>
+    </table>
+
+    <script src="script.js"></script>
+</body>
+</html>
