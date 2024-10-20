@@ -9,13 +9,14 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
-// The token will be replaced by the Docker entrypoint script
+// The token and API URL will be replaced by the Docker entrypoint script
 const token = '__TRACKER_APP_TOKEN__';  // Placeholder for the token
+const backendApiUrl = '__BACKEND_API_URL__';  // Placeholder for the backend API URL
 
 // Fetch users from the API and populate the dropdown
 function fetchUsers() {
     const userSelect = document.getElementById('user-select');
-    const url = `http://localhost:5171/api/users`;  // API endpoint for fetching users
+    const url = `${backendApiUrl}/api/users`;  // API endpoint for fetching users
 
     fetch(url, {
         headers: {
@@ -53,7 +54,7 @@ function fetchUsers() {
 
 // Fetch GPS data for the selected user and plot it on the map
 function fetchGPSData(selectedUser) {
-    const url = `http://localhost:5171/api/gps-data?user=${selectedUser}&time_range=last_7_days`;  // URL with selected user
+    const url = `${backendApiUrl}/api/gps-data?user=${selectedUser}&time_range=last_7_days`;  // URL with selected user
 
     fetch(url, {
         headers: {
