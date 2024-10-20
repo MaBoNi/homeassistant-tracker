@@ -84,7 +84,7 @@ def get_gps_logs(user, time_range, device=None):
             logger.info(f"Applying device filter: {device.lower()}")
             query = query.filter_by(device=device.lower())
         
-        logs = query.order_by(desc(GPSLog.timestamp)).all()
+        logs = query.order_by(GPSLog.timestamp).all()
         
         if not logs:
             logger.info(f"No GPS logs found for user: {user}")
