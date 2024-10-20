@@ -13,6 +13,12 @@ services:
       - TRACKER_APP_TOKEN=your_very_secret_static_token  # Remember to add this to the frontend also
     volumes:
       - ./backend:/app
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5171/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     depends_on:
       db:
         condition: service_healthy
@@ -26,7 +32,8 @@ services:
       - TRACKER_APP_TOKEN=your_very_secret_static_token  # Remember to add this to the backend also
       - BACKEND_API_URL=http://homeassistant-tracker-backend:5171
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
 
   db:
     image: postgres:13
