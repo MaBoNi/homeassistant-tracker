@@ -5,33 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GPS Tracker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />  <!-- Leaflet CSS -->
 </head>
 <body>
-    <h1>GPS Tracker Data</h1>
+    <div class="container">
+        <h1>GPS Tracker Data</h1>
 
-    <label for="user-select">Select User:</label>
-    <select id="user-select">
-        <!-- Users will be populated here dynamically -->
-    </select>
+        <label for="user-select">Select User:</label>
+        <select id="user-select">
+            <!-- Users will be populated here dynamically -->
+        </select>
 
-    <div id="error"></div>  <!-- Error message will appear here -->
+        <div id="error"></div>  <!-- Error message will appear here -->
 
-    <table id="gps-data-table">
-        <thead>
-            <tr>
-                <th>User</th>
-                <th>Device</th>
-                <th>Latitude</th>
-                <th>Longitude</th>
-                <th>Timestamp</th>
-                <th>Accuracy</th>
-            </tr>
-        </thead>
-        <tbody>
-            <!-- Data will be inserted here dynamically -->
-        </tbody>
-    </table>
+        <table id="gps-data-table">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Device</th>
+                    <th>Latitude</th>
+                    <th>Longitude</th>
+                    <th>Timestamp</th>
+                    <th>Accuracy</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be inserted here dynamically -->
+            </tbody>
+        </table>
 
+        <!-- Map container -->
+        <div id="map" style="height: 400px;"></div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> <!-- Leaflet JS -->
     <script src="script.js"></script>
 </body>
 </html>
