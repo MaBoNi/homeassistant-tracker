@@ -66,3 +66,13 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ## Acknowledgments
 - Built for efficient tracking and visualization of GPS data using Home Assistant and open-source tools.
+
+## Contributing
+Contributions are welcome! Feel free to open an issue or submit a pull request.
+
+## Repobeats Analytics
+---
+
+![Alt](https://repobeats.axiom.co/api/embed/bdefb2b5821082ae5d7ef63926053e0edc2ec335.svg "Repobeats analytics image")
+
+---
