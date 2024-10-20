@@ -28,7 +28,10 @@ jobs:
       # Build the backend Docker image and push to Docker Hub
       - name: Build and push backend image
         run: |
+          # Build the backend Docker image
           docker build -t ${{ secrets.DOCKER_USERNAME }}/ha-gps-tracker-backend:latest ./backend
+          
+          # Push the backend Docker image to Docker Hub
           docker push ${{ secrets.DOCKER_USERNAME }}/ha-gps-tracker-backend:latest
 
   build-frontend:
@@ -53,5 +56,8 @@ jobs:
       # Build the frontend Docker image and push to Docker Hub
       - name: Build and push frontend image
         run: |
+          # Build the frontend Docker image
           docker build -t ${{ secrets.DOCKER_USERNAME }}/ha-gps-tracker-frontend:latest ./frontend
+          
+          # Push the frontend Docker image to Docker Hub
           docker push ${{ secrets.DOCKER_USERNAME }}/ha-gps-tracker-frontend:latest
