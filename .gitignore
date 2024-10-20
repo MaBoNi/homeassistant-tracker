@@ -37,3 +37,7 @@ Thumbs.db
 build/
 dist/
 *.egg-info
+
+
+# Ignore local development files
+docker-compose-local.yml
