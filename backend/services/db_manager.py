@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from api.models import GPSLog
 from config.db import Base, engine
 from config.config import Config
+from datetime import timezone
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -65,13 +66,17 @@ def get_gps_logs(user, time_range, device=None):
         
         # Apply time filters
         if time_range == 'last_hour':
-            time_limit = datetime.utcnow() - timedelta(hours=1)
+            time_limit = datetime.now(timezone.utc) - timedelta(hours=1)
+        elif time_range == 'last_2_hours':
+            time_limit = datetime.now(timezone.utc) - timedelta(hours=2)
+        elif time_range == 'last_3_hours':
+            time_limit = datetime.now(timezone.utc) - timedelta(hours=3)
         elif time_range == 'last_6_hours':
-            time_limit = datetime.utcnow() - timedelta(hours=6)
+            time_limit = datetime.now(timezone.utc) - timedelta(hours=6)
         elif time_range == 'last_day':
-            time_limit = datetime.utcnow() - timedelta(days=1)
+            time_limit = datetime.now(timezone.utc) - timedelta(days=1)
         elif time_range == 'last_7_days':
-            time_limit = datetime.utcnow() - timedelta(days=7)
+            time_limit = datetime.now(timezone.utc) - timedelta(days=7)
         else:
             time_limit = None  # live (get the most recent entry)
 
@@ -79,11 +84,17 @@ def get_gps_logs(user, time_range, device=None):
             logger.info(f"Applying device filter: {device.lower()}")
             query = query.filter_by(device=device.lower())
 
-        # Apply device filter
         if device:
             logger.info(f"Applying device filter: {device.lower()}")
             query = query.filter_by(device=device.lower())
+
+        if time_limit:
+            logger.info(f"Applying time filter: {time_limit}")
+            query = query.filter(GPSLog.timestamp > time_limit)
         
+        # Log the SQL query being executed
+        logger.info(f"Executing query: {str(query)}")
+
         logs = query.order_by(GPSLog.timestamp).all()
         
         if not logs:
