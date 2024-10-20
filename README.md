@@ -58,11 +58,21 @@ The map under the table will plot the route based on the GPS coordinates from th
 
 ## Docker Hub Repositories
 
-- **Backend**: [ha-gps-tracker-backend](https://hub.docker.com/r/maboni82/ha-gps-tracker-backend)
-- **Frontend**: [ha-gps-tracker-frontend](https://hub.docker.com/r/maboni82/ha-gps-tracker-frontend)
+- **Backend**: <a href="https://hub.docker.com/r/maboni82/ha-gps-tracker-backend" target="_blank">ha-gps-tracker-backend</a>
+- **Frontend**: <a href="https://hub.docker.com/r/maboni82/ha-gps-tracker-frontend" target="_blank">ha-gps-tracker-frontend</a>
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 - Built for efficient tracking and visualization of GPS data using Home Assistant and open-source tools.
+
+## Contributing
+Contributions are welcome! Feel free to open an issue or submit a pull request.
+
+## Repobeats Analytics
+---
+
+![Alt](https://repobeats.axiom.co/api/embed/bdefb2b5821082ae5d7ef63926053e0edc2ec335.svg "Repobeats analytics image")
+
+---
