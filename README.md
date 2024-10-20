@@ -1,51 +1,68 @@
-# GPS Tracker Application
+![Build Status](https://img.shields.io/github/actions/workflow/status/maboni/homeassistant-tracker/ci.yml?branch=main&style=for-the-badge)
+![License](https://img.shields.io/github/license/maboni/homeassistant-tracker?style=for-the-badge)
+![Repo Size](https://img.shields.io/github/repo-size/maboni/homeassistant-tracker?style=for-the-badge)
 
-This project is a GPS tracking application that displays GPS data for specific users and their devices. It provides an interface to select a user, view their device's location data, and visualize the route the device has taken on a map.
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-ha--gps--tracker--backend-blue?logo=docker&style=for-the-badge)](https://hub.docker.com/r/maboni82/ha-gps-tracker-backend)[![Docker Pulls](https://img.shields.io/docker/pulls/maboni82/ha-gps-tracker-backend?style=for-the-badge)](https://hub.docker.com/r/maboni82/ha-gps-tracker-backend)
+
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-ha--gps--tracker--frontend-blue?logo=docker&style=for-the-badge)](https://hub.docker.com/r/maboni82/ha-gps-tracker-frontend)[![Docker Pulls](https://img.shields.io/docker/pulls/maboni82/ha-gps-tracker-frontend?style=for-the-badge)](https://hub.docker.com/r/maboni82/ha-gps-tracker-frontend)
+
+A Dockerized GPS tracker application that fetches GPS data from Home Assistant and visualizes it. The backend fetches GPS data from Home Assistant API, while the frontend displays the data on a map.
 
 ## Features
+- **GPS Tracking** – Retrieve GPS coordinates from Home Assistant for selected users and devices.
+- **Map Visualization** – Display routes on a map using Leaflet for interactive visualization.
+- **User Data Filtering** – Select users from a dropdown menu to view their GPS data.
+- **Dockerized** – Quick deployment of backend and frontend via Docker.
 
-- **User Selection**: Select a user from the dropdown to view their GPS data.
-- **Table View**: Display GPS data such as latitude, longitude, timestamp, device, and accuracy in a table.
-- **Map View**: Visualize the route the device has taken on a map. The map shows the connected points of GPS coordinates, marking the start and end of the route.
-- **Data Fetching**: Fetches GPS data for a selected user from the API for the last 7 days and populates the table and map dynamically.
+## Getting Started
 
-## Technologies Used
+### Prerequisites
+- [Docker](https://www.docker.com/get-started)
+- [Docker Compose](https://docs.docker.com/compose/install/)
 
-- **HTML, CSS, JavaScript**: Frontend components
-- **Leaflet.js**: For rendering and displaying the map and plotting routes.
-- **OpenStreetMap**: Free tile map service used by Leaflet for displaying the map.
-- **Flask API**: Backend API for fetching user and GPS data.
+### Installation
 
-## Installation and Setup
+1. **Clone the repository**:
+    ```bash
+    git clone https://github.com/maboni/ha-gps-tracker.git
+    cd ha-gps-tracker
+    ```
 
-1. **Backend**: Set up the Flask API to serve the GPS data.
-   - Refer to the backend API documentation to configure the routes for fetching users and GPS data.
-   
-2. **Frontend**:
-   - The frontend is built using simple HTML, CSS, and JavaScript.
-   - The map is rendered using **Leaflet.js** and displays the GPS coordinates on a polyline (connected route).
+2. **Set up Docker environment**:
+    Create a `.env` file and configure the Home Assistant API details:
+    ```
+    HA_API_URL=https://your-home-assistant-url/api
+    HA_TOKEN=your_long_lived_token
+    ```
 
-3. **Running the Frontend**:
-   - Build the frontend Docker container:
-     ```bash
-     docker build -t gps-tracker-frontend .
-     ```
-   - Run the frontend:
-     ```bash
-     docker run -d -p 5172:80 gps-tracker-frontend
-     ```
+3. **Run the containers**:
+    ```bash
+    docker-compose up -d
+    ```
 
-4. **Access the App**:
-   - Open a browser and navigate to `http://localhost:5172/`.
-   - Select a user from the dropdown to view their GPS data and route.
+4. The **frontend** will be available at `http://localhost:5172` and the **backend API** at `http://localhost:5171`.
 
-## New Map Feature
+### Usage
+When you visit the frontend, you can select a user from the dropdown, and the GPS route will be displayed on the map. The data is updated every few seconds from Home Assistant.
 
-- **Map Integration**: The new map feature allows you to see the route the selected user has taken over the last 7 days.
-  - The map is plotted using **Leaflet.js** with data points taken from the GPS coordinates retrieved from the backend.
-  - The start and end of the route are marked with markers, and the entire route is connected with a blue polyline.
-  - The map will automatically adjust its view to fit the entire route on the screen.
-  
-- **Usage**:
-  - Simply select a user from the dropdown, and their route will be plotted on the map below the table.
+### Example Data in the Table
 
+| User         | Device             | Latitude      | Longitude     | Timestamp            | Accuracy |
+|--------------|--------------------|---------------|---------------|----------------------|----------|
+| martin_bonde | ipad_pro_bondes     | 55.563566     | 9.479099      | 19/10/2024, 21:35:52| 6        |
+| martin_bonde | bonds_iphone_13_pro | 55.563547     | 9.479100      | 19/10/2024, 21:35:52| 9        |
+
+### Map Visualization
+
+The map under the table will plot the route based on the GPS coordinates from the table, providing a visual representation of the journey. The route is updated dynamically as new data is received.
+
+## Docker Hub Repositories
+
+- **Backend**: [ha-gps-tracker-backend](https://hub.docker.com/r/maboni82/ha-gps-tracker-backend)
+- **Frontend**: [ha-gps-tracker-frontend](https://hub.docker.com/r/maboni82/ha-gps-tracker-frontend)
+
+## License
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+- Built for efficient tracking and visualization of GPS data using Home Assistant and open-source tools.
