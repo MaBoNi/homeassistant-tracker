@@ -10,6 +10,7 @@ services:
       - HA_TOKEN=your_static_token
       - HA_USERS=john_doe,jane_doe,another_doer
       - DROP_DB_ON_START=False  # Set to True to recreate the DB on startup
+      - TRACKER_APP_TOKEN=your_very_secret_static_token  # Remember to add this to the frontend also
     volumes:
       - ./backend:/app
     depends_on:
@@ -20,6 +21,8 @@ services:
     container_name: gps_tracker_frontend
     ports:
       - "5172:80"  # Frontend app port
+    environment:
+      - TRACKER_APP_TOKEN=your_very_secret_static_token  # Remember to add this to the backend also
     depends_on:
       - backend
 

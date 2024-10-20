@@ -9,6 +9,9 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
+// The token will be replaced by the Docker entrypoint script
+const token = '__TRACKER_APP_TOKEN__';  // Placeholder for the token
+
 // Fetch users from the API and populate the dropdown
 function fetchUsers() {
     const userSelect = document.getElementById('user-select');
@@ -16,7 +19,7 @@ function fetchUsers() {
 
     fetch(url, {
         headers: {
-            'Authorization': 'Bearer your_static_token',
+            'Authorization': `Bearer ${token}`,  // Using token from the environment
         }
     })
     .then(response => response.json())
@@ -54,7 +57,7 @@ function fetchGPSData(selectedUser) {
 
     fetch(url, {
         headers: {
-            'Authorization': 'Bearer your_static_token',
+            'Authorization': `Bearer ${token}`,  // Using token from the environment
         }
     })
     .then(response => response.json())

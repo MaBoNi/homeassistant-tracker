@@ -1,8 +1,10 @@
 # backend/api/auth.py
+import os
 from flask import request, jsonify
 from functools import wraps
 
-BEARER_TOKEN = "your_static_token"  # Change this to your actual static token
+# Fetch the TRACKER_APP_TOKEN from the environment
+BEARER_TOKEN = os.getenv('TRACKER_APP_TOKEN')
 
 def token_required(f):
     @wraps(f)
