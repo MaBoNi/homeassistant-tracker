@@ -2,9 +2,11 @@
 ![License](https://img.shields.io/github/license/maboni/homeassistant-tracker?style=for-the-badge)
 ![Repo Size](https://img.shields.io/github/repo-size/maboni/homeassistant-tracker?style=for-the-badge)
 
-[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-ha--gps--tracker--backend-blue?logo=docker&style=for-the-badge)](https://hub.docker.com/r/maboni82/ha-gps-tracker-backend)[![Docker Pulls](https://img.shields.io/docker/pulls/maboni82/ha-gps-tracker-backend?style=for-the-badge)](https://hub.docker.com/r/maboni82/ha-gps-tracker-backend)
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-homeassistant--tracker--frontend-blue?logo=docker&style=for-the-badge)](https://hub.docker.com/r/maboni82/homeassistant-tracker-frontend)[![Docker Pulls](https://img.shields.io/docker/pulls/maboni82/homeassistant-tracker-frontend?style=for-the-badge)](https://hub.docker.com/r/maboni82/homeassistant-tracker-frontend)
 
-[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-ha--gps--tracker--frontend-blue?logo=docker&style=for-the-badge)](https://hub.docker.com/r/maboni82/ha-gps-tracker-frontend)[![Docker Pulls](https://img.shields.io/docker/pulls/maboni82/ha-gps-tracker-frontend?style=for-the-badge)](https://hub.docker.com/r/maboni82/ha-gps-tracker-frontend)
+
+[![Docker Hub](https://img.shields.io/badge/Docker%20Hub-homeassistant--tracker--backend-blue?logo=docker&style=for-the-badge)](https://hub.docker.com/r/maboni82/homeassistant-tracker-backend)[![Docker Pulls](https://img.shields.io/docker/pulls/maboni82/homeassistant-tracker-backend?style=for-the-badge)](https://hub.docker.com/r/maboni82/homeassistant-tracker-backend)
+
 
 A Dockerized GPS tracker application that fetches GPS data from Home Assistant and visualizes it. The backend fetches GPS data from Home Assistant API, while the frontend displays the data on a map.
 
@@ -58,8 +60,8 @@ The map under the table will plot the route based on the GPS coordinates from th
 
 ## Docker Hub Repositories
 
-- **Backend**: <a href="https://hub.docker.com/r/maboni82/ha-gps-tracker-backend" target="_blank">ha-gps-tracker-backend</a>
-- **Frontend**: <a href="https://hub.docker.com/r/maboni82/ha-gps-tracker-frontend" target="_blank">ha-gps-tracker-frontend</a>
+- **Backend**: <a href="https://hub.docker.com/r/maboni82/homeassistant-tracker-backend" target="_blank">homeassistant-tracker-backend</a>
+- **Frontend**: <a href="https://hub.docker.com/r/maboni82/homeassistant-tracker-frontend" target="_blank">homeassistant-tracker-frontend</a>
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
