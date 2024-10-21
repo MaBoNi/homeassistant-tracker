@@ -9,9 +9,19 @@ document.addEventListener('DOMContentLoaded', function() {
         localTimeElement.textContent = `Local Time: ${currentTime}`;
     }
 
-    // Update local time immediately and then every second
+    // Function to update the "Last updated at" time
+    function updateLastUpdatedTime() {
+        const lastUpdatedElement = document.getElementById('last-updated');
+        const currentTime = new Date().toLocaleTimeString();  // Get current local time string
+        lastUpdatedElement.textContent = `Last updated at: ${currentTime}`;
+    }
+
+    // Update local time and last updated time immediately
     updateLocalTime();
-    setInterval(updateLocalTime, 1000);  // Update time every second
+    updateLastUpdatedTime();
+
+    // Update local time every second
+    setInterval(updateLocalTime, 1000);
 });
 
 // Initialize map globally so it can be accessed in functions
@@ -85,22 +95,20 @@ function fetchGPSData(selectedUser) {
         const tableBody = document.querySelector('#gps-data-table tbody');
         const errorElement = document.getElementById('error');
 
-        if (!data || data.length === 0) {
-            errorElement.textContent = 'No data found!';
-            return;
-        }
-
-        // Clear any previous data in the table body
-        tableBody.innerHTML = '';
-        errorElement.textContent = '';  // Clear previous errors
-
-        // Clear the map layers before plotting new data
-        map.eachLayer((layer) => {
+        // Clear previous data
+        tableBody.innerHTML = '';  // Clear the table body
+        map.eachLayer(layer => {   // Clear existing map markers and polylines
             if (layer instanceof L.Marker || layer instanceof L.Polyline) {
                 map.removeLayer(layer);
             }
         });
 
+        if (!data || data.length === 0) {
+            errorElement.textContent = 'No data found!';
+            return;
+        }
+
+        errorElement.textContent = '';  // Clear previous errors
         const coordinates = [];  // Array to hold coordinates for the route
 
         // Populate table with data and collect coordinates for the map
@@ -142,6 +150,9 @@ function fetchGPSData(selectedUser) {
             // Adjust map view to fit the plotted route
             map.fitBounds(coordinates);
         }
+
+        // Update the "Last updated at" time whenever new data is fetched
+        updateLastUpdatedTime();
     })
     .catch(error => {
         console.error('Error fetching data:', error);
@@ -154,3 +165,11 @@ document.getElementById('time-select').addEventListener('change', function() {
     const userSelect = document.getElementById('user-select');
     fetchGPSData(userSelect.value);  // Fetch data for the selected user when the time range changes
 });
+
+// Add auto-refresh functionality every 30 seconds
+setInterval(() => {
+    const userSelect = document.getElementById('user-select');
+    if (userSelect.value) {
+        fetchGPSData(userSelect.value);  // Refresh data every 30 seconds
+    }
+}, 30000); // 30 seconds
