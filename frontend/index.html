@@ -10,13 +10,13 @@
 <body>
     <div class="container">
         <h1>Home Assistant History Data Tracker</h1>
-
+    
         <div class="selectors">
             <label for="user-select">Select User:</label>
             <select id="user-select">
                 <!-- Users will be populated here dynamically -->
             </select>
-
+    
             <label for="time-select">Select Time Range:</label>
             <select id="time-select">
                 <option value="last_hour">Last Hour</option>
@@ -26,15 +26,19 @@
                 <option value="last_day">Last Day</option>
                 <option value="last_7_days" selected>Last 7 Days</option>
             </select>
-
-            <div id="local-time"></div>  <!-- Local time display -->
+    
+            <div class="time-info">
+                <div id="local-time"></div>
+                <div id="last-updated"></div>  <!-- Last updated time display -->
+            </div>
+            
         </div>
-
+    
         <!-- Map container -->
         <div id="map" style="height: 400px;"></div>
-
+    
         <div id="error"></div>  <!-- Error message will appear here -->
-
+    
         <table id="gps-data-table">
             <thead>
                 <tr>
@@ -51,6 +55,7 @@
             </tbody>
         </table>
     </div>
+    
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> <!-- Leaflet JS -->
     <script src="script.js"></script>
