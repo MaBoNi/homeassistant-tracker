@@ -92,6 +92,6 @@ table tbody tr:hover {
     padding: 5px;
     border: 1px solid #003366;
     border-radius: 5px;
-    align-items: flex-end;
-    margin-left: 10px;
+    margin-left: 10px;      /* Add margin to give space from the selectors */
+    text-align: left;       /* Align text to the left for a cleaner look */
 }

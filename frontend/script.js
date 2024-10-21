@@ -1,28 +1,26 @@
+// Function to update the "Last updated at" time
+function updateLastUpdatedTime() {
+    const lastUpdatedElement = document.getElementById('last-updated');
+    const currentTime = new Date().toLocaleTimeString([], { hour12: false });  // 24-hour format
+    console.log(`Last updated time: ${currentTime}`);  // <-- Log for debugging
+    lastUpdatedElement.textContent = `Last updated: ${currentTime}`;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     fetchUsers();  // Fetch and populate users when the page loads
-    fetchGPSData();  // Fetch default GPS data (for the first user) when the page loads
 
     // Function to update local time
     function updateLocalTime() {
         const localTimeElement = document.getElementById('local-time');
-        const currentTime = new Date().toLocaleTimeString();  // Get local time string
+        const currentTime = new Date().toLocaleTimeString([], { hour12: false });  // 24-hour format
         localTimeElement.textContent = `Local Time: ${currentTime}`;
     }
 
-    // Function to update the "Last updated at" time
-    function updateLastUpdatedTime() {
-        const lastUpdatedElement = document.getElementById('last-updated');
-        const currentTime = new Date().toLocaleTimeString();  // Get current local time string
-        lastUpdatedElement.textContent = `Last updated at: ${currentTime}`;
-    }
-
-    // Update local time and last updated time immediately
-    updateLocalTime();
-    updateLastUpdatedTime();
-
     // Update local time every second
+    updateLocalTime();
     setInterval(updateLocalTime, 1000);
 });
+
 
 // Initialize map globally so it can be accessed in functions
 let map = L.map('map').setView([55.6761, 12.5683], 12);  // Default center on Denmark
@@ -37,7 +35,7 @@ const backendApiUrl = '__BACKEND_API_URL__';  // Placeholder for the backend API
 // Helper function to convert ISO timestamp to local time, assuming the API is sending UTC timestamps
 function convertUTCToLocal(utcDateString) {
     const utcDate = new Date(utcDateString + 'Z');  // Append 'Z' to treat it as UTC
-    return utcDate.toLocaleString();  // Convert to local time
+    return utcDate.toLocaleString([], { hour12: false });  // Convert to 24-hour local time
 }
 
 // Fetch users from the API and populate the dropdown
@@ -57,6 +55,14 @@ function fetchUsers() {
             return;
         }
 
+        // Add a placeholder option to prompt the user to select someone
+        const placeholderOption = document.createElement('option');
+        placeholderOption.value = '';
+        placeholderOption.textContent = 'Select a user';
+        placeholderOption.disabled = true;
+        placeholderOption.selected = true;
+        userSelect.appendChild(placeholderOption);
+
         // Populate the dropdown with users
         users.forEach(user => {
             const option = document.createElement('option');
@@ -64,18 +70,18 @@ function fetchUsers() {
             option.textContent = user;
             userSelect.appendChild(option);
         });
-
-        // Trigger fetching data for the first user in the list
-        fetchGPSData(userSelect.value);
     })
     .catch(error => {
         console.error('Error fetching users:', error);
         document.getElementById('error').textContent = 'Error fetching users';
     });
 
-    // Add event listener to reload data when the user or time range changes
+    // Add event listener to fetch data when a valid user is selected
     userSelect.addEventListener('change', function() {
-        fetchGPSData(userSelect.value);
+        if (userSelect.value !== '') {
+            fetchGPSData(userSelect.value);  // Fetch data for the selected user
+            updateLastUpdatedTime();  // Update the "Last updated at" time when user changes
+        }
     });
 }
 
@@ -83,7 +89,7 @@ function fetchUsers() {
 function fetchGPSData(selectedUser) {
     const timeSelect = document.getElementById('time-select');
     const timeRange = timeSelect.value;
-    const url = `${backendApiUrl}/api/gps-data?user=${selectedUser}&time_range=${timeRange}`;  // URL with selected user and time range
+    const url = `${backendApiUrl}api/gps-data?user=${selectedUser}&time_range=${timeRange}`;  // URL with selected user and time range
 
     fetch(url, {
         headers: {
@@ -151,7 +157,7 @@ function fetchGPSData(selectedUser) {
             map.fitBounds(coordinates);
         }
 
-        // Update the "Last updated at" time whenever new data is fetched
+        // Update the "Last updated at" time after the data fetch is completed
         updateLastUpdatedTime();
     })
     .catch(error => {
@@ -163,13 +169,17 @@ function fetchGPSData(selectedUser) {
 // Add event listener for time range selector to reload data
 document.getElementById('time-select').addEventListener('change', function() {
     const userSelect = document.getElementById('user-select');
-    fetchGPSData(userSelect.value);  // Fetch data for the selected user when the time range changes
+    if (userSelect.value !== '') {
+        fetchGPSData(userSelect.value);  // Fetch data for the selected user when the time range changes
+        updateLastUpdatedTime();  // Update the "Last updated at" time when time range changes
+    }
 });
 
 // Add auto-refresh functionality every 30 seconds
 setInterval(() => {
     const userSelect = document.getElementById('user-select');
-    if (userSelect.value) {
+    if (userSelect.value !== '') {
         fetchGPSData(userSelect.value);  // Refresh data every 30 seconds
+        updateLastUpdatedTime();  // Update the "Last updated at" time on auto-refresh
     }
 }, 30000); // 30 seconds
