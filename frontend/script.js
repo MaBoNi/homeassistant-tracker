@@ -111,8 +111,8 @@ function fetchGPSData(selectedUser) {
         // Fit the map to the route (if there are coordinates)
         if (coordinates.length > 0) {
             // Add markers for the start and end of the route
-            L.marker(coordinates[0]).addTo(map).bindPopup("Start").openPopup();  // Start
-            L.marker(coordinates[coordinates.length - 1]).addTo(map).bindPopup("End");  // End
+            L.marker(coordinates[0]).addTo(map).bindPopup(`<b>Start</b><br>Time: ${new Date(data[0].timestamp).toLocaleString()}`).openPopup();  // Start
+            L.marker(coordinates[coordinates.length - 1]).addTo(map).bindPopup(`<b>End</b><br>Time: ${new Date(data[data.length - 1].timestamp).toLocaleString()}`);  // End            
 
             // Draw the polyline (route) on the map
             L.polyline(coordinates, { color: 'blue' }).addTo(map);
