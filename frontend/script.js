@@ -89,7 +89,7 @@ function fetchUsers() {
 function fetchGPSData(selectedUser) {
     const timeSelect = document.getElementById('time-select');
     const timeRange = timeSelect.value;
-    const url = `${backendApiUrl}api/gps-data?user=${selectedUser}&time_range=${timeRange}`;  // URL with selected user and time range
+    const url = `${backendApiUrl}/api/gps-data?user=${selectedUser}&time_range=${timeRange}`;  // URL with selected user and time range
 
     fetch(url, {
         headers: {
