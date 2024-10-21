@@ -1,6 +1,17 @@
 document.addEventListener('DOMContentLoaded', function() {
     fetchUsers();  // Fetch and populate users when the page loads
     fetchGPSData();  // Fetch default GPS data (for the first user) when the page loads
+
+    // Function to update local time
+    function updateLocalTime() {
+        const localTimeElement = document.getElementById('local-time');
+        const currentTime = new Date().toLocaleTimeString();  // Get local time string
+        localTimeElement.textContent = `Local Time: ${currentTime}`;
+    }
+
+    // Update local time immediately and then every second
+    updateLocalTime();
+    setInterval(updateLocalTime, 1000);  // Update time every second
 });
 
 // Initialize map globally so it can be accessed in functions
@@ -13,29 +24,11 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const token = '__TRACKER_APP_TOKEN__';  // Placeholder for the token
 const backendApiUrl = '__BACKEND_API_URL__';  // Placeholder for the backend API URL
 
-// Function to convert UTC timestamp to local time
-function convertUTCtoLocal(utcDateString) {
-    const utcDate = new Date(utcDateString);  // Parse UTC date string into a Date object
-    return utcDate.toLocaleString();  // Automatically converts to local timezone
+// Helper function to convert ISO timestamp to local time, assuming the API is sending UTC timestamps
+function convertUTCToLocal(utcDateString) {
+    const utcDate = new Date(utcDateString + 'Z');  // Append 'Z' to treat it as UTC
+    return utcDate.toLocaleString();  // Convert to local time
 }
-
-// Function to display the local time at the bottom of the page
-function displayLocalTime() {
-    const localTimeElement = document.getElementById('local-time');
-    const currentTime = new Date().toLocaleString();
-    localTimeElement.textContent = `Local Time: ${currentTime}`;
-}
-
-// Function to update local time
-function updateLocalTime() {
-    const localTimeElement = document.getElementById('local-time');
-    const currentTime = new Date().toLocaleTimeString();  // Get local time string
-    localTimeElement.textContent = `Local Time: ${currentTime}`;
-}
-
-// Update local time immediately and then every second
-updateLocalTime();
-setInterval(updateLocalTime, 1000);  // Update time every second
 
 // Fetch users from the API and populate the dropdown
 function fetchUsers() {
@@ -112,13 +105,15 @@ function fetchGPSData(selectedUser) {
 
         // Populate table with data and collect coordinates for the map
         data.forEach(item => {
+            const localTimestamp = convertUTCToLocal(item.timestamp);  // Convert to local time
+
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${item.user}</td>
                 <td>${item.device}</td>
                 <td>${item.latitude}</td>
                 <td>${item.longitude}</td>
-                <td>${convertUTCtoLocal(item.timestamp)}</td>  <!-- Convert UTC to local -->
+                <td>${localTimestamp}</td>
                 <td>${item.accuracy || 'N/A'}</td>
             `;
             tableBody.appendChild(row);
@@ -129,14 +124,17 @@ function fetchGPSData(selectedUser) {
 
             // Add a marker for each GPS location
             const marker = L.marker(coordinate).addTo(map);
-            marker.bindPopup(`Time: ${convertUTCtoLocal(item.timestamp)}`);
+            marker.bindPopup(`Time: ${localTimestamp}`);
         });
 
         // Fit the map to the route (if there are coordinates)
         if (coordinates.length > 0) {
+            const startLocalTime = convertUTCToLocal(data[0].timestamp);
+            const endLocalTime = convertUTCToLocal(data[data.length - 1].timestamp);
+
             // Add markers for the start and end of the route
-            L.marker(coordinates[0]).addTo(map).bindPopup(`<b>Start</b><br>Time: ${convertUTCtoLocal(data[0].timestamp)}`).openPopup();  // Start Point
-            L.marker(coordinates[coordinates.length - 1]).addTo(map).bindPopup(`<b>End</b><br>Time: ${convertUTCtoLocal(data[data.length - 1].timestamp)}`);  // End Point
+            L.marker(coordinates[0]).addTo(map).bindPopup(`<b>Start</b><br>Time: ${startLocalTime}`).openPopup();  // Start
+            L.marker(coordinates[coordinates.length - 1]).addTo(map).bindPopup(`<b>End</b><br>Time: ${endLocalTime}`);  // End
 
             // Draw the polyline (route) on the map
             L.polyline(coordinates, { color: 'blue' }).addTo(map);
