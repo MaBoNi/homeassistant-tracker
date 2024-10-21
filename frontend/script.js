@@ -100,7 +100,12 @@ function fetchGPSData(selectedUser) {
             tableBody.appendChild(row);
 
             // Add coordinates to the array for the map
-            coordinates.push([item.latitude, item.longitude]);
+            const coordinate = [item.latitude, item.longitude];
+            coordinates.push(coordinate);
+
+            // Add a marker for each GPS location
+            const marker = L.marker(coordinate).addTo(map);
+            marker.bindPopup(`Time: ${new Date(item.timestamp).toLocaleString()}`);
         });
 
         // Fit the map to the route (if there are coordinates)
