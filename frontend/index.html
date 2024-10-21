@@ -21,13 +21,17 @@
             <select id="time-select">
                 <option value="last_hour">Last Hour</option>
                 <option value="last_2_hours">Last 2 Hours</option>
-                <option value="last_3_hours">Last 3 Hours</option>
+                <option value="last_3_hours" selected>Last 3 Hours</option>
                 <option value="last_6_hours">Last 6 Hours</option>
                 <option value="last_day">Last Day</option>
-                <option value="last_7_days" selected>Last 7 Days</option>
+                <option value="last_7_days">Last 7 Days</option>
             </select>
 
-            <div id="local-time"></div>  <!-- Local time display -->
+            <div class="time-info">
+                <div id="local-time"></div>
+                <div id="last-updated"></div>  <!-- Last updated time display -->
+            </div>
+
         </div>
 
         <!-- Map container -->
@@ -51,6 +55,7 @@
             </tbody>
         </table>
     </div>
+
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script> <!-- Leaflet JS -->
     <script src="script.js"></script>

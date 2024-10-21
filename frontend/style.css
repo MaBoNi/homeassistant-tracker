@@ -82,14 +82,16 @@ table tbody tr:hover {
     margin-left: 10px;
 }
 
-/* Local time display styles */
-#local-time {
+/* Time display styles */
+.time-info {
+    display: flex;
+    flex-direction: column;  /* Stack the two divs on top of each other */
     font-size: 14px;
     color: #005b96;
     background-color: #f0f8ff;
     padding: 5px;
     border: 1px solid #003366;
     border-radius: 5px;
-    display: inline-block;  /* Ensures it appears as a proper inline block */
     margin-left: 10px;      /* Add margin to give space from the selectors */
+    text-align: left;       /* Align text to the left for a cleaner look */
 }
