@@ -4,4 +4,4 @@ SQLAlchemy==1.4.25
 requests==2.32.3
 psycopg2-binary==2.9.3
 APScheduler==3.7.0
-Werkzeug==3.0.3
+Werkzeug==3.0.6
