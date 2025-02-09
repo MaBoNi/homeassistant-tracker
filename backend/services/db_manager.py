@@ -77,6 +77,8 @@ def get_gps_logs(user, time_range, device=None):
             time_limit = datetime.now(timezone.utc) - timedelta(days=1)
         elif time_range == 'last_7_days':
             time_limit = datetime.now(timezone.utc) - timedelta(days=7)
+        elif time_range == 'last_30_days':
+            time_limit = datetime.now(timezone.utc) - timedelta(days=30)
         else:
             time_limit = None  # live (get the most recent entry)
 
