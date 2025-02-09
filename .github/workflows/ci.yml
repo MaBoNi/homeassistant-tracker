@@ -37,7 +37,12 @@ jobs:
 
       - name: Run JavaScript Linting (JSHint)
         run: |
-          jshint frontend/script.js
+          jshint frontend/script.js --reporter=unix | tee jshint_report.txt
+          JSHINT_ERRORS=$(grep -c "^[^:]*:[^:]*:[^:]*: " jshint_report.txt || true)
+          if [ "$JSHINT_ERRORS" -gt 5 ]; then
+            echo "JSHint found too many errors ($JSHINT_ERRORS). Failing the build."
+            exit 1
+          fi
 
   build-backend:
     runs-on: ubuntu-latest
