@@ -5,7 +5,6 @@ API Blueprint Initialization for Home Assistant Tracker.
 
 from flask import Blueprint
 
-# Import routes at the top to avoid PyLint warnings
-from . import routes
+api_bp = Blueprint('api', __name__)
 
-api_bp = Blueprint("api", __name__)
+from . import routes
