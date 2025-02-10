@@ -1,4 +1,4 @@
-![Build Status](https://img.shields.io/github/actions/workflow/status/maboni/homeassistant-tracker/ci.yml?branch=main&style=for-the-badge)
+![Build Status](https://img.shields.io/github/actions/workflow/status/maboni/homeassistant-tracker/build-and-push.yml?branch=main&style=for-the-badge)
 ![License](https://img.shields.io/github/license/maboni/homeassistant-tracker?style=for-the-badge)
 ![Repo Size](https://img.shields.io/github/repo-size/maboni/homeassistant-tracker?style=for-the-badge)
 
