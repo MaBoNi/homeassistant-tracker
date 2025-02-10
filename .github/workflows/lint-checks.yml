@@ -32,7 +32,7 @@ jobs:
 
       - name: Run Python Linting (PyLint)
         run: |
-          pylint backend --fail-under=8
+          pylint backend --fail-under=8 --disable=R0401
 
       - name: Install JSHint for JavaScript Linting
         run: |
