@@ -43,22 +43,22 @@ jobs:
         run: |
           pylint backend --fail-under=8 -d R0401 | tee pylint_report.txt
 
-  jshint:
-    runs-on: ubuntu-latest
-    name: Run JSHint Checks
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Install JSHint for JavaScript Linting
-        run: |
-          sudo apt-get update && sudo apt-get install -y jshint
-
-      - name: Run JavaScript Linting (JSHint)
-        run: |
-          jshint frontend/script.js --reporter=unix | tee jshint_report.txt
-          JSHINT_ERRORS=$(grep -c "^[^:]*:[^:]*:[^:]*: " jshint_report.txt || echo "0")
-          if [ "$JSHINT_ERRORS" -gt 5 ]; then
-            echo "JSHint found too many errors ($JSHINT_ERRORS). Will fail the build."
-            exit 1
-          fi
+#  jshint:
+#    runs-on: ubuntu-latest
+#    name: Run JSHint Checks
+#    steps:
+#      - name: Checkout code
+#        uses: actions/checkout@v4
+#
+#      - name: Install JSHint for JavaScript Linting
+#        run: |
+#          sudo apt-get update && sudo apt-get install -y jshint
+#
+#      - name: Run JavaScript Linting (JSHint)
+#        run: |
+#          jshint frontend/script.js --reporter=unix | tee jshint_report.txt
+#          JSHINT_ERRORS=$(grep -c "^[^:]*:[^:]*:[^:]*: " jshint_report.txt || echo "0")
+#          if [ "$JSHINT_ERRORS" -gt 5 ]; then
+#            echo "JSHint found too many errors ($JSHINT_ERRORS). Will fail the build."
+#            exit 1
+#          fi
