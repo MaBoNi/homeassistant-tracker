@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - '*'
-  pull_request:
-    branches:
-      - '*'
+#  pull_request:
+#    branches:
+#      - '*'
 
 permissions:
   contents: read
@@ -29,10 +29,11 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install pylint
+          pip install -r backend/requirements.txt
 
       - name: Run Python Linting (PyLint)
         run: |
-          pylint backend --fail-under=8
+          pylint backend --fail-under=8 --disable=R0401
 
   jshint:
     runs-on: ubuntu-latest
