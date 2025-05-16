@@ -13,9 +13,9 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-# Assuming your requirements.txt is in the project_root
+# Update pip and install any additional requirements
 RUN pip install --upgrade pip && \
     pip install --upgrade setuptools && \
-    pip install --upgrade --no-cache-dir -r requirements.txt
+    pip install --upgrade --no-cache-dir -r requirements.txt --use-deprecated=legacy-resolver
 
 CMD ["python", "app.py"]
