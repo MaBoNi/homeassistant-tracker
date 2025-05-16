@@ -40,4 +40,5 @@ dist/
 
 
 # Ignore local development files
-docker-compose-local.yml
+*local.yml
+*backup.*
