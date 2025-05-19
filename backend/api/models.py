@@ -22,9 +22,10 @@ class GPSLog(Base):
     timestamp = Column(DateTime, nullable=False)
     accuracy = Column(Float, nullable=True)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         """
         Convert the GPS log entry to a dictionary format.
+
         Returns:
             dict: A dictionary representation of the GPS log entry.
         """
@@ -37,9 +38,10 @@ class GPSLog(Base):
             "accuracy": self.accuracy,
         }
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         String representation of the GPSLog object.
+
         Returns:
             str: Readable representation of the GPS log entry.
         """
