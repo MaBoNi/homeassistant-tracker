@@ -1,4 +1,5 @@
 # backend/services/db_manager.py
+
 """
 Handles database interactions for GPS log storage and retrieval.
 """
@@ -7,7 +8,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import desc, text
+from sqlalchemy import desc
 
 from api.models import GPSLog
 from config.db import engine
@@ -86,7 +87,6 @@ def save_gps_log(user, device, latitude, longitude, accuracy, timestamp):
             user, device, str(e)
         )
 
-
 def get_gps_logs(user, time_range, device=None):
     """
     Retrieve GPS logs for a given user and optional device/time range.
@@ -118,8 +118,8 @@ def get_gps_logs(user, time_range, device=None):
             'last_30_days': timedelta(days=30),
         }
 
-        time_limit = datetime.now(timezone.utc) - time_map.get(time_range, timedelta(0))
         if time_range != 'live':
+            time_limit = datetime.now(timezone.utc) - time_map.get(time_range, timedelta(0))
             logger.info("Applying time filter: %s", time_limit)
             query = query.filter(GPSLog.timestamp > time_limit)
 
@@ -140,7 +140,7 @@ def get_gps_logs(user, time_range, device=None):
     except Exception as e:
         session.rollback()
         logger.error("Error retrieving GPS logs for user: %s: %s", user, str(e))
-
+        return []
 
 def get_unique_users():
     """
