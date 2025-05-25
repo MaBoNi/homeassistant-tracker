@@ -1,12 +1,19 @@
 # backend/api/auth.py
+"""
+Authentication utilities for protecting Flask routes using a bearer token.
+"""
+
 import os
-from flask import request, jsonify
 from functools import wraps
+from flask import request, jsonify
 
 # Fetch the TRACKER_APP_TOKEN from the environment
 BEARER_TOKEN = os.getenv('TRACKER_APP_TOKEN')
 
 def token_required(f):
+    """
+    Decorator to enforce bearer token authentication for protected routes.
+    """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         token = request.headers.get('Authorization')
