@@ -19,7 +19,7 @@ disable=
     W1203,  # logging-fstring-interpolation
 
 [FORMAT]
-max-line-length=100
+max-line-length=120
 
 [DESIGN]
 max-args=6
