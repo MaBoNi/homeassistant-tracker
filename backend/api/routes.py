@@ -3,6 +3,8 @@
 Defines all Flask routes for the Home Assistant Tracker API.
 """
 
+import os
+
 from flask import request, jsonify
 import requests
 from sqlalchemy import text
@@ -12,7 +14,6 @@ from services.db_manager import get_gps_logs, get_unique_users
 from . import api_bp
 from .auth import token_required
 
-import os
 
 # Read environment variables
 HA_TOKEN = os.getenv("HA_TOKEN")
