@@ -34,7 +34,6 @@ def fetch_and_save_location(user_entity):
     logger.info("Fetching location for %s from Home Assistant API: %s", user_entity, url)
 
     try:
-        # Step 1: Fetch the person entity data
         response = requests.get(url, headers=headers)
         logger.info("Response Status Code for %s: %s", user_entity, response.status_code)
 
@@ -78,15 +77,33 @@ def fetch_and_save_location(user_entity):
                     else:
                         logger.warning("No location data available for %s", device_tracker)
                 else:
-                    logger.error("Failed to fetch data for %s. Status Code: %s", device_tracker, device_response.status_code)
-                    logger.error("Device tracker URL: %s", device_tracker_url)
-                    logger.error("Headers: %s", headers)
+                    logger.error(
+                        "Failed to fetch data for %s. Status Code: %s",device_tracker, device_response.status_code
+                    )
+                    logger.error(
+                        "Device tracker URL: %s", device_tracker_url
+                    )
+                    logger.error(
+                        "Headers: %s", headers
+                    )
         else:
-            logger.error("Failed to fetch data for %s. Status Code: %s", user_entity, response.status_code)
-            logger.error("Request URL: %s", url)
-            logger.error("Headers: %s", headers)
+            logger.error(
+                "Failed to fetch data for %s. Status Code: %s", user_entity, response.status_code
+            )
+            logger.error(
+                "Request URL: %s", url
+            )
+            logger.error(
+                "Headers: %s", headers
+            )
 
     except Exception as e:
-        logger.error("Error occurred while fetching data for %s: %s", user_entity, str(e))
-        logger.error("Request URL: %s", url)
-        logger.error("Headers: %s", headers)
+        logger.error(
+            "Error occurred while fetching data for %s: %s", user_entity, str(e)
+        )
+        logger.error(
+            "Request URL: %s", url
+        )
+        logger.error(
+            "Headers: %s", headers
+        )
