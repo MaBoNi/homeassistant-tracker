@@ -1,7 +1,7 @@
 Flask==3.0.3
 Flask-Cors==6.0.0
 SQLAlchemy==1.4.25
-requests==2.32.3
+requests==2.32.4
 psycopg2-binary==2.9.3
 APScheduler==3.7.0
 Werkzeug==3.0.6
