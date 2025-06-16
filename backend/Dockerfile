@@ -3,19 +3,18 @@ FROM python:3.13-slim
 
 WORKDIR /app
 
-# Copy only the backend folder content
+# Copy backend source only
 COPY . /app
 
-# Update packages and install any additional packages for DEV
+# Install system packages for psycopg2-binary and general use
 RUN apt-get update && \
-    apt-get upgrade -y && \
-    apt-get autoremove -y && \
-    apt-get clean && \
+    apt-get install -y gcc libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-# Update pip and install any additional requirements
-RUN pip install --upgrade pip && \
-    pip install --upgrade setuptools && \
-    pip install --upgrade --no-cache-dir -r requirements.txt --use-deprecated=legacy-resolver
+# Install Python dependencies
+RUN pip install --upgrade pip setuptools && \
+    pip install --no-cache-dir -r requirements.txt
+
+EXPOSE 5000
 
 CMD ["python", "app.py"]
