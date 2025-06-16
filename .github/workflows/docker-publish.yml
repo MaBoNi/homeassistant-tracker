@@ -55,8 +55,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile.${{ matrix.service }}
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
           push: false
           tags: |
             maboni82/homeassistant-tracker-${{ matrix.service }}:latest
@@ -66,8 +66,8 @@ jobs:
       - name: Push Docker images to Docker Hub
         uses: docker/build-push-action@v5
         with:
-          context: .
-          file: ./Dockerfile.${{ matrix.service }}
+          context: ./${{ matrix.service }}
+          file: ./${{ matrix.service }}/Dockerfile
           push: true
           tags: |
             maboni82/homeassistant-tracker-${{ matrix.service }}:latest
