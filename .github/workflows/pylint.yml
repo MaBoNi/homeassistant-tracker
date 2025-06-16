@@ -1,8 +1,11 @@
 # .github/workflows/lint.yml
 
-name: Lint Code
+name: Lint Python Code
 
 on: [push, pull_request]
+
+permissions:
+  contents: read
 
 jobs:
   lint:
@@ -25,6 +28,5 @@ jobs:
 
       - name: Run Pylint
         run: |
-          # Add backend to PYTHONPATH so pylint can resolve imports
           export PYTHONPATH=$PYTHONPATH:./backend
-          pylint backend --rcfile=.pylintrc || true 
+          pylint backend --rcfile=.pylintrc || true
