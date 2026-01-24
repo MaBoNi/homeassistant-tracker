@@ -10,12 +10,22 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+# Create non-root user
+RUN groupadd -r appuser --gid=1000 && \
+    useradd -r -g appuser --uid=1000 --home-dir=/app --shell=/bin/bash appuser
+
 # Copy all backend files into container
 COPY . /app
 
 # Install Python dependencies
 RUN pip install --upgrade pip setuptools && \
     pip install --no-cache-dir -r requirements.txt
+
+# Change ownership of app directory to non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
 
 # Expose Flask port
 EXPOSE 5000
