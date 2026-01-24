@@ -13,20 +13,24 @@ from flask import request, jsonify
 logger = logging.getLogger(__name__)
 
 # Fetch the TRACKER_APP_TOKEN from the environment
-BEARER_TOKEN = os.getenv('TRACKER_APP_TOKEN')
+BEARER_TOKEN = os.getenv("TRACKER_APP_TOKEN")
+
 
 def token_required(f):
     """
     Decorator to enforce bearer token authentication for protected routes.
     Uses constant-time comparison to prevent timing attacks.
     """
+
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        token = request.headers.get('Authorization')
+        token = request.headers.get("Authorization")
 
         # Log failed attempts (without token details)
         if not token:
-            logger.warning(f"Authentication attempt without token from {request.remote_addr}")
+            logger.warning(
+                f"Authentication attempt without token from {request.remote_addr}"
+            )
             return jsonify({"message": "Authentication is required"}), 401
 
         # Extract Bearer token
@@ -42,4 +46,5 @@ def token_required(f):
             return jsonify({"message": "Invalid authentication credentials"}), 401
 
         return f(*args, **kwargs)
+
     return decorated_function

@@ -33,15 +33,18 @@ def save_gps_log(user, device, latitude, longitude, accuracy, timestamp):
         accuracy (float): Accuracy of the GPS reading
         timestamp (datetime): Time of the reading
     """
-    if user.startswith('person.'):
-        user = user.replace('person.', '')
+    if user.startswith("person."):
+        user = user.replace("person.", "")
 
-    if device.startswith('device_tracker.'):
-        device = device.replace('device_tracker.', '')
+    if device.startswith("device_tracker."):
+        device = device.replace("device_tracker.", "")
 
     logger.info(
         "Attempting to save GPS log for user: %s and device: %s with coordinates (%s, %s)",
-        user, device, latitude, longitude
+        user,
+        device,
+        latitude,
+        longitude,
     )
 
     try:
@@ -55,13 +58,22 @@ def save_gps_log(user, device, latitude, longitude, accuracy, timestamp):
         if last_log:
             logger.info(
                 "Last saved location for %s on device %s: Latitude %s, Longitude %s, Timestamp: %s",
-                user, device, last_log.latitude, last_log.longitude, last_log.timestamp
+                user,
+                device,
+                last_log.latitude,
+                last_log.longitude,
+                last_log.timestamp,
             )
 
-        if last_log and last_log.latitude == latitude and last_log.longitude == longitude:
+        if (
+            last_log
+            and last_log.latitude == latitude
+            and last_log.longitude == longitude
+        ):
             logger.info(
                 "No change in location for %s on device %s, skipping save.",
-                user, device
+                user,
+                device,
             )
             return
 
@@ -71,21 +83,20 @@ def save_gps_log(user, device, latitude, longitude, accuracy, timestamp):
             latitude=latitude,
             longitude=longitude,
             accuracy=accuracy,
-            timestamp=timestamp
+            timestamp=timestamp,
         )
         session.add(new_log)
         session.commit()
         logger.info(
-            "Saved GPS log for user: %s and device: %s at %s",
-            user, device, timestamp
+            "Saved GPS log for user: %s and device: %s at %s", user, device, timestamp
         )
 
     except Exception as e:
         session.rollback()
         logger.error(
-            "Error saving GPS log for user: %s on device: %s: %s",
-            user, device, str(e)
+            "Error saving GPS log for user: %s on device: %s: %s", user, device, str(e)
         )
+
 
 def get_gps_logs(user, time_range, device=None):
     """
@@ -100,26 +111,30 @@ def get_gps_logs(user, time_range, device=None):
         list: List of GPS logs as dictionaries.
     """
     try:
-        if user.startswith('person.'):
-            user = user.replace('person.', '')
+        if user.startswith("person."):
+            user = user.replace("person.", "")
 
-        logger.info("Retrieving GPS logs for user: %s with time range: %s", user, time_range)
+        logger.info(
+            "Retrieving GPS logs for user: %s with time range: %s", user, time_range
+        )
 
         query = session.query(GPSLog).filter_by(user=user)
 
         # Time filter
         time_map = {
-            'last_hour': timedelta(hours=1),
-            'last_2_hours': timedelta(hours=2),
-            'last_3_hours': timedelta(hours=3),
-            'last_6_hours': timedelta(hours=6),
-            'last_day': timedelta(days=1),
-            'last_7_days': timedelta(days=7),
-            'last_30_days': timedelta(days=30),
+            "last_hour": timedelta(hours=1),
+            "last_2_hours": timedelta(hours=2),
+            "last_3_hours": timedelta(hours=3),
+            "last_6_hours": timedelta(hours=6),
+            "last_day": timedelta(days=1),
+            "last_7_days": timedelta(days=7),
+            "last_30_days": timedelta(days=30),
         }
 
-        if time_range != 'live':
-            time_limit = datetime.now(timezone.utc) - time_map.get(time_range, timedelta(0))
+        if time_range != "live":
+            time_limit = datetime.now(timezone.utc) - time_map.get(
+                time_range, timedelta(0)
+            )
             logger.info("Applying time filter: %s", time_limit)
             query = query.filter(GPSLog.timestamp > time_limit)
 
@@ -141,6 +156,7 @@ def get_gps_logs(user, time_range, device=None):
         session.rollback()
         logger.error("Error retrieving GPS logs for user: %s: %s", user, str(e))
         return []
+
 
 def get_unique_users():
     """

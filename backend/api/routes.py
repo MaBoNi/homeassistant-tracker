@@ -19,14 +19,14 @@ HA_TOKEN = os.getenv("HA_TOKEN")
 HA_API_URL = os.getenv("HA_API_URL")
 
 
-@api_bp.route('/gps-data', methods=['GET'])
+@api_bp.route("/gps-data", methods=["GET"])
 @token_required
 def get_gps_data():
     """
     Fetch GPS data based on user and time_range.
     """
-    user = request.args.get('user')
-    time_range = request.args.get('time_range', 'live')  # default to 'live'
+    user = request.args.get("user")
+    time_range = request.args.get("time_range", "live")  # default to 'live'
     data = get_gps_logs(user, time_range)
 
     if not data:
@@ -35,7 +35,7 @@ def get_gps_data():
     return jsonify(data), 200
 
 
-@api_bp.route('/users', methods=['GET'])
+@api_bp.route("/users", methods=["GET"])
 @token_required
 def get_users():
     """
@@ -49,7 +49,7 @@ def get_users():
     return jsonify(users), 200
 
 
-@api_bp.route('/healthz', methods=['GET'])
+@api_bp.route("/healthz", methods=["GET"])
 def healthz():
     """
     Simple healthcheck endpoint for Docker that just verifies Flask is running.
@@ -57,7 +57,7 @@ def healthz():
     return jsonify({"status": "healthy"}), 200
 
 
-@api_bp.route('/health', methods=['GET'])
+@api_bp.route("/health", methods=["GET"])
 def health_check():
     """
     Returns detailed health status of Flask app, DB connection, and HA API.
@@ -66,7 +66,7 @@ def health_check():
         "flask_status": "OK",
         "db_status": "OK",
         "ha_status": "OK",
-        "api_version": "0.9.0"
+        "api_version": "0.9.0",
     }
 
     # Check database connection
@@ -85,16 +85,20 @@ def health_check():
             raise ValueError("Missing HA_TOKEN or HA_API_URL")
 
         headers = {
-            'Authorization': f'Bearer {HA_TOKEN}',
-            'Content-Type': 'application/json'
+            "Authorization": f"Bearer {HA_TOKEN}",
+            "Content-Type": "application/json",
         }
-        response = requests.get(f'{HA_API_URL}/states', headers=headers, timeout=5)
+        response = requests.get(f"{HA_API_URL}/states", headers=headers, timeout=5)
         if response.status_code != 200:
-            raise ValueError(f'HA API returned {response.status_code}')
+            raise ValueError(f"HA API returned {response.status_code}")
     except Exception as ha_error:
         health_status["ha_status"] = "ERROR"
         health_status["ha_error"] = str(ha_error)
 
     # Determine final HTTP status
-    status_code = 200 if all(v == "OK" for v in health_status.values() if isinstance(v, str)) else 500
+    status_code = (
+        200
+        if all(v == "OK" for v in health_status.values() if isinstance(v, str))
+        else 500
+    )
     return jsonify(health_status), status_code
