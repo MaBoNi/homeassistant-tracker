@@ -38,7 +38,17 @@ build/
 dist/
 *.egg-info
 
-
 # Ignore local development files
 *local.yml
 *backup.*
+
+# Ignore AI generated files as they can contain sensitive information
+*.chat
+*.gpt
+*.ai
+*.prompt
+*.response
+CLAUDE.md
+WARP.md
+copilot-instructions.md
+cursorrules.md
