@@ -28,7 +28,11 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
-// The token and API URL will be replaced by the Docker entrypoint script
+// ⚠️ SECURITY NOTE: The token and API URL are replaced by the Docker entrypoint script
+// This means the authentication token is visible in the browser (view source, dev tools)
+// Anyone with frontend access effectively has API access. This is a known limitation.
+// See SECURITY.md for mitigation strategies and recommended solutions.
+// Current mitigations: Rate limiting (30 req/min), CORS restrictions, access logging
 const token = '__TRACKER_APP_TOKEN__';  // Placeholder for the token
 const backendApiUrl = '__BACKEND_API_URL__';  // Placeholder for the backend API URL
 

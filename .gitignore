@@ -10,6 +10,7 @@ venv/
 # Ignore any local environment files
 *.env
 *.env.*
+!.env.template
 
 # Ignore Docker-specific files
 docker-compose.override.yml
@@ -38,7 +39,30 @@ build/
 dist/
 *.egg-info
 
-
 # Ignore local development files
 *local.yml
 *backup.*
+
+# Ignore AI generated files as they can contain sensitive information
+*.chat
+*.gpt
+*.ai
+*.prompt
+*.response
+CLAUDE.md
+WARP.md
+copilot-instructions.md
+cursorrules.md
+
+# Ignore Infisical secret files
+.infisical.json
+
+# Ignore Safety CLI data
+.safety/
+.safety-db/
+.safety-report.json
+.safety-ignore
+.safety-cache
+.safety-temp
+.safety-vcs-ignore
+.safety-project.ini

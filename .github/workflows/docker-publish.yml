@@ -9,6 +9,8 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
@@ -20,10 +22,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -52,19 +54,9 @@ jobs:
           pip install --upgrade pip
           pip install -r backend/requirements.txt
 
-      - name: Build Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: ./${{ matrix.service }}
-          file: ./${{ matrix.service }}/Dockerfile
-          push: false
-          tags: |
-            maboni82/homeassistant-tracker-${{ matrix.service }}:latest
-            maboni82/homeassistant-tracker-${{ matrix.service }}:${{ env.tag }}
-          builder: ${{ steps.buildx.outputs.name }}
-
-      - name: Push Docker images to Docker Hub
-        uses: docker/build-push-action@v5
+      - name: Build and Push Docker image with attestations
+        uses: docker/build-push-action@v6
+        id: push
         with:
           context: ./${{ matrix.service }}
           file: ./${{ matrix.service }}/Dockerfile
@@ -73,3 +65,12 @@ jobs:
             maboni82/homeassistant-tracker-${{ matrix.service }}:latest
             maboni82/homeassistant-tracker-${{ matrix.service }}:${{ env.tag }}
           builder: ${{ steps.buildx.outputs.name }}
+          provenance: mode=max
+          sbom: true
+
+      - name: Generate artifact attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: index.docker.io/maboni82/homeassistant-tracker-${{ matrix.service }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true

@@ -6,6 +6,7 @@ Database models for Home Assistant Tracker.
 from sqlalchemy import Column, Integer, String, Float, DateTime
 from config.db import Base
 
+
 class GPSLog(Base):
     """
     Represents a GPS log entry stored in the database.
@@ -45,4 +46,6 @@ class GPSLog(Base):
         Returns:
             str: Readable representation of the GPS log entry.
         """
-        return f"<GPSLog user={self.user} device={self.device} timestamp={self.timestamp}>"
+        return (
+            f"<GPSLog user={self.user} device={self.device} timestamp={self.timestamp}>"
+        )

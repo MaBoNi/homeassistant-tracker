@@ -6,6 +6,8 @@ Flask application for Home Assistant Tracker.
 import os
 from flask import Flask
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from api import api_bp
@@ -17,8 +19,37 @@ drop_db_on_start = os.getenv("DROP_DB_ON_START", "False").lower() in ("true", "1
 init_db(drop_and_recreate=drop_db_on_start)
 
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with restricted origins for security
+# Read allowed origins from environment variable (comma-separated)
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5172,http://127.0.0.1:5172")
+allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
+
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": allowed_origins,
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Authorization", "Content-Type"],
+            "expose_headers": ["Content-Type"],
+            "supports_credentials": False,
+            "max_age": 600,
+        }
+    },
+)
+
 app.register_blueprint(api_bp, url_prefix="/api")
+
+# Configure rate limiting to prevent API abuse
+# Default limits apply to all routes: 200 per day, 50 per hour
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",  # In-memory storage (use Redis for production)
+    strategy="fixed-window",
+)
 
 scheduler = BackgroundScheduler()
 
@@ -26,7 +57,7 @@ scheduler = BackgroundScheduler()
 def get_users_to_track():
     """
     Read HA_USERS from environment variables and append 'person.' prefix.
-    
+
     Returns:
         list: A list of formatted Home Assistant user IDs.
     """

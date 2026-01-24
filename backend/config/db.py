@@ -17,6 +17,7 @@ Base = declarative_base()
 engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
 Session = sessionmaker(bind=engine)
 
+
 def init_db(drop_and_recreate=False):
     """
     Initialize the database schema. Optionally drops all tables before recreating.
