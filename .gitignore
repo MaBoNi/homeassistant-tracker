@@ -10,6 +10,7 @@ venv/
 # Ignore any local environment files
 *.env
 *.env.*
+!.env.template
 
 # Ignore Docker-specific files
 docker-compose.override.yml
@@ -64,4 +65,4 @@ cursorrules.md
 .safety-cache
 .safety-temp
 .safety-vcs-ignore
-.safety-project.ini
+.safety-project.ini.env
