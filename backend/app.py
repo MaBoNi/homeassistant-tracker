@@ -6,9 +6,10 @@ Flask application for Home Assistant Tracker.
 import os
 from flask import Flask
 from flask_cors import CORS
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 from apscheduler.schedulers.background import BackgroundScheduler
 
-from api import api_bp
 from config.db import init_db
 from services.ha_fetcher import fetch_and_save_location
 
@@ -36,7 +37,22 @@ CORS(app, resources={
     }
 })
 
+# Configure rate limiting to prevent API abuse
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",  # In-memory storage (use Redis for production)
+    strategy="fixed-window"
+)
+
+# Import and register API blueprint after limiter is created
+from api import api_bp
 app.register_blueprint(api_bp, url_prefix="/api")
+
+# Apply specific rate limits to API endpoints
+from api.routes import apply_rate_limits
+apply_rate_limits(limiter)
 
 scheduler = BackgroundScheduler()
 
