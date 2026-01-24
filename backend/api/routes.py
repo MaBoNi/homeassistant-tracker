@@ -19,22 +19,6 @@ HA_TOKEN = os.getenv("HA_TOKEN")
 HA_API_URL = os.getenv("HA_API_URL")
 
 
-def apply_rate_limits(limiter):
-    """
-    Apply specific rate limits to API endpoints after limiter is initialized.
-
-    Args:
-        limiter: Flask-Limiter instance from app.py
-    """
-    # Rate limit for GPS data endpoint (most frequently accessed)
-    limiter.limit("30 per minute")(get_gps_data)
-
-    # Rate limit for users endpoint (less frequently accessed)
-    limiter.limit("10 per minute")(get_users)
-
-    # Health checks don't need rate limiting (used by Docker)
-
-
 @api_bp.route('/gps-data', methods=['GET'])
 @token_required
 def get_gps_data():
