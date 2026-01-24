@@ -21,22 +21,23 @@ init_db(drop_and_recreate=drop_db_on_start)
 app = Flask(__name__)
 
 # Configure CORS with restricted origins for security
-# Only allow requests from the frontend domain and localhost for development
-CORS(app, resources={
-    r"/api/*": {
-        "origins": [
-            "http://localhost:5172",
-            "http://127.0.0.1:5172",
-            # Add your production frontend domain here when deployed
-            # "https://yourdomain.com"
-        ],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Authorization", "Content-Type"],
-        "expose_headers": ["Content-Type"],
-        "supports_credentials": False,
-        "max_age": 600
-    }
-})
+# Read allowed origins from environment variable (comma-separated)
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5172,http://127.0.0.1:5172")
+allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
+
+CORS(
+    app,
+    resources={
+        r"/api/*": {
+            "origins": allowed_origins,
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Authorization", "Content-Type"],
+            "expose_headers": ["Content-Type"],
+            "supports_credentials": False,
+            "max_age": 600,
+        }
+    },
+)
 
 app.register_blueprint(api_bp, url_prefix="/api")
 
@@ -47,7 +48,7 @@ limiter = Limiter(
     key_func=get_remote_address,
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://",  # In-memory storage (use Redis for production)
-    strategy="fixed-window"
+    strategy="fixed-window",
 )
 
 scheduler = BackgroundScheduler()
@@ -56,7 +57,7 @@ scheduler = BackgroundScheduler()
 def get_users_to_track():
     """
     Read HA_USERS from environment variables and append 'person.' prefix.
-    
+
     Returns:
         list: A list of formatted Home Assistant user IDs.
     """
