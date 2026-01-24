@@ -65,4 +65,4 @@ cursorrules.md
 .safety-cache
 .safety-temp
 .safety-vcs-ignore
-.safety-project.ini.env
+.safety-project.ini
