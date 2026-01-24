@@ -55,3 +55,13 @@ cursorrules.md
 
 # Ignore Infisical secret files
 .infisical.json
+
+# Ignore Safety CLI data
+.safety/
+.safety-db/
+.safety-report.json
+.safety-ignore
+.safety-cache
+.safety-temp
+.safety-vcs-ignore
+.safety-project.ini
