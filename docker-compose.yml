@@ -6,16 +6,16 @@ services:
     ports:
       - "5171:5000"  # Backend API port
     environment:
-      - DATABASE_URL=postgresql://postgres:your_password@homeassistant-tracker-db:5432/gps_tracker
-      - HA_API_URL=http://your-home-assistant-url/api
-      - HA_TOKEN=your_static_token
-      - HA_USERS=john_doe,jane_doe,another_doer
-      - DROP_DB_ON_START=False  # Set to True to recreate the DB on startup
-      - TRACKER_APP_TOKEN=your_very_secret_static_token  # Remember to add this to the frontend also
+      - DATABASE_URL=${DATABASE_URL}
+      - HA_API_URL=${HA_API_URL}
+      - HA_TOKEN=${HA_TOKEN}
+      - HA_USERS=${HA_USERS}
+      - DROP_DB_ON_START=${DROP_DB_ON_START}
+      - TRACKER_APP_TOKEN=${TRACKER_APP_TOKEN}
     volumes:
       - ./backend:/app
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5171/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -31,8 +31,8 @@ services:
     ports:
       - "5172:80"  # Frontend app port
     environment:
-      - TRACKER_APP_TOKEN=your_very_secret_static_token  # Remember to add this to the backend also
-      - BACKEND_API_URL=http://homeassistant-tracker-backend:5171
+      - TRACKER_APP_TOKEN=${TRACKER_APP_TOKEN}
+      - BACKEND_API_URL=${BACKEND_API_URL}
     depends_on:
       backend:
         condition: service_healthy
@@ -45,9 +45,9 @@ services:
     image: postgres:13
     container_name: homeassistant-tracker-db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=your_password
-      - POSTGRES_DB=gps_tracker
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
