@@ -17,7 +17,25 @@ drop_db_on_start = os.getenv("DROP_DB_ON_START", "False").lower() in ("true", "1
 init_db(drop_and_recreate=drop_db_on_start)
 
 app = Flask(__name__)
-CORS(app)
+
+# Configure CORS with restricted origins for security
+# Only allow requests from the frontend domain and localhost for development
+CORS(app, resources={
+    r"/api/*": {
+        "origins": [
+            "http://localhost:5172",
+            "http://127.0.0.1:5172",
+            # Add your production frontend domain here when deployed
+            # "https://yourdomain.com"
+        ],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Authorization", "Content-Type"],
+        "expose_headers": ["Content-Type"],
+        "supports_credentials": False,
+        "max_age": 600
+    }
+})
+
 app.register_blueprint(api_bp, url_prefix="/api")
 
 scheduler = BackgroundScheduler()
