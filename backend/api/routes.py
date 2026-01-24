@@ -50,10 +50,18 @@ def get_users():
     return jsonify(users), 200
 
 
+@api_bp.route('/healthz', methods=['GET'])
+def healthz():
+    """
+    Simple healthcheck endpoint for Docker that just verifies Flask is running.
+    """
+    return jsonify({"status": "healthy"}), 200
+
+
 @api_bp.route('/health', methods=['GET'])
 def health_check():
     """
-    Returns health status of Flask app, DB connection, and HA API.
+    Returns detailed health status of Flask app, DB connection, and HA API.
     """
     health_status = {
         "flask_status": "OK",
