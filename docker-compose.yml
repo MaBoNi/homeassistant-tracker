@@ -12,6 +12,7 @@ services:
       - HA_USERS=${HA_USERS}
       - DROP_DB_ON_START=${DROP_DB_ON_START}
       - TRACKER_APP_TOKEN=${TRACKER_APP_TOKEN}
+      - CORS_ORIGINS=${CORS_ORIGINS}
     volumes:
       - ./backend:/app
     healthcheck:
