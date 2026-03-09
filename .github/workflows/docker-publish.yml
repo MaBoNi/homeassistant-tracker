@@ -55,7 +55,7 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: Build and Push Docker image with attestations
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         id: push
         with:
           context: ./${{ matrix.service }}
