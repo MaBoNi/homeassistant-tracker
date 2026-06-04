@@ -1,0 +1,241 @@
+name: Auto-Increment Version on PR Merge
+
+# Automatically increments patch version when a PR is merged to main.
+# Versioning scheme: YY.MM.PATCH (e.g., 26.6.0, 26.6.1, …) — same as BondIT repos.
+# Patch counter resets on the first source change of each calendar month.
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      force_version:
+        description: "Force specific version (e.g., 26.6.7)"
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-version-increment
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: read
+  actions: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # 🔍 DETECT SOURCE CHANGES
+  # ─────────────────────────────────────────────────────────────
+  # Skip the entire pipeline on doc-only / CI-only / dependabot-only commits.
+  # Source-relevant paths for homeassistant-tracker:
+  #   backend/    — Python app + requirements.txt + Dockerfile
+  #   frontend/   — static HTML/JS/CSS + Dockerfile + nginx.conf + entrypoint.sh
+  detect-changes:
+    name: "🔍 Detect Source Changes"
+    runs-on: ubuntu-latest
+    outputs:
+      source-changed: ${{ steps.check.outputs.source-changed }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+      - name: Check for source changes
+        id: check
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          echo "Changed files:"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE "^(backend/|frontend/)"; then
+            echo "source-changed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Source files changed — version increment will run"
+          else
+            echo "source-changed=false" >> "$GITHUB_OUTPUT"
+            echo "⚡ No source changes — skipping version increment"
+          fi
+
+  calculate-version:
+    name: "🔢 Calculate Next Version"
+    runs-on: ubuntu-latest
+    needs: [detect-changes]
+    if: needs.detect-changes.outputs.source-changed == 'true'
+    outputs:
+      new_version: ${{ steps.version.outputs.new_version }}
+      latest_version: ${{ steps.version.outputs.latest_version }}
+      current_month: ${{ steps.version.outputs.current_month }}
+      should_build: ${{ steps.check.outputs.should_build }}
+
+    steps:
+      - name: "📦 Checkout Repository"
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: "🔢 Calculate Version"
+        id: version
+        run: |
+          if [[ -n "${{ github.event.inputs.force_version }}" ]]; then
+            NEW_VERSION="${{ github.event.inputs.force_version }}"
+            echo "🎯 Using forced version: $NEW_VERSION"
+
+            if ! [[ "$NEW_VERSION" =~ ^[0-9]{2}\.[0-9]{1,2}\.[0-9]+$ ]]; then
+              echo "❌ Invalid version format: $NEW_VERSION"
+              echo "Expected format: YY.MM.PATCH (e.g., 26.6.7)"
+              exit 1
+            fi
+
+            CURRENT_MONTH=$(date +"%y.%-m")
+            LATEST_VERSION=$(git tag -l "${CURRENT_MONTH}.*" | sort -V | tail -1)
+            if [[ -z "$LATEST_VERSION" ]]; then
+              LATEST_VERSION="${CURRENT_MONTH}.0"
+            fi
+          else
+            chmod +x scripts/increment-version.sh
+            ./scripts/increment-version.sh
+
+            NEW_VERSION=$(grep "NEW_VERSION=" "$GITHUB_OUTPUT" | cut -d'=' -f2)
+            LATEST_VERSION=$(grep "PREVIOUS_VERSION=" "$GITHUB_OUTPUT" | cut -d'=' -f2)
+            CURRENT_MONTH=$(echo "$NEW_VERSION" | cut -d'.' -f1-2)
+          fi
+
+          {
+            echo "new_version=$NEW_VERSION"
+            echo "latest_version=$LATEST_VERSION"
+            echo "current_month=$CURRENT_MONTH"
+          } >> "$GITHUB_OUTPUT"
+
+          echo "📋 Version Calculation:"
+          echo "   Previous: $LATEST_VERSION"
+          echo "   Next:     $NEW_VERSION"
+          echo "   Month:    $CURRENT_MONTH"
+
+      - name: "🔍 Check if Version Already Exists"
+        id: check
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.new_version }}
+        run: |
+          if git tag -l | grep -q "^${NEW_VERSION}$"; then
+            echo "⚠️ Version tag already exists: $NEW_VERSION"
+            if [[ "${{ github.event.inputs.force_version }}" == "$NEW_VERSION" ]]; then
+              echo "🔄 Force mode — will overwrite existing tag"
+              echo "should_build=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "ℹ️ Skipping for existing version"
+              echo "should_build=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "✅ New version ready: $NEW_VERSION"
+            echo "should_build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  create-tag-and-release:
+    name: "🏷️ Create Tag and Release"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, calculate-version]
+    if: needs.detect-changes.outputs.source-changed == 'true' && needs.calculate-version.outputs.should_build == 'true'
+
+    steps:
+      - name: "📦 Checkout Repository"
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: "🏷️ Create Git Tag"
+        env:
+          NEW_VERSION: ${{ needs.calculate-version.outputs.new_version }}
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+          if git tag -l | grep -q "^${NEW_VERSION}$"; then
+            echo "🔄 Removing existing tag: $NEW_VERSION"
+            git tag -d "$NEW_VERSION" || true
+          fi
+
+          git tag -a "$NEW_VERSION" -m "Patch release $NEW_VERSION
+
+          Automatic patch version increment from main branch merge.
+
+          Build: GitHub Actions #${GITHUB_RUN_NUMBER}
+          Commit: ${GITHUB_SHA:0:8}
+          Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          "
+          echo "✅ Created git tag: $NEW_VERSION"
+
+      - name: "📤 Push Tag"
+        env:
+          NEW_VERSION: ${{ needs.calculate-version.outputs.new_version }}
+        run: |
+          git push origin "$NEW_VERSION" --force
+          echo "✅ Pushed tag to origin: $NEW_VERSION"
+
+      - name: "📦 Create GitHub Release"
+        env:
+          NEW_VERSION: ${{ needs.calculate-version.outputs.new_version }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cat > temp_release_notes.md << EOF
+          # Release ${NEW_VERSION}
+
+          **Release Date:** $(date +"%Y-%m-%d")
+          **Release Type:** Patch Release
+          **Commit:** ${GITHUB_SHA:0:8}
+
+          ## Changes
+
+          Automatic patch release from main branch merge.
+
+          ## Technical Details
+
+          - **Git Tag:** \`${NEW_VERSION}\`
+          - **Version Update:** GitHub Actions #${GITHUB_RUN_NUMBER}
+          - **Docker Build:** Handled by separate \`docker-publish.yml\` workflow
+          EOF
+
+          gh release create "$NEW_VERSION" \
+            --title "Release $NEW_VERSION" \
+            --notes-file "temp_release_notes.md" \
+            --target main \
+            --generate-notes=false
+
+          echo "✅ Created GitHub release: $NEW_VERSION"
+
+  summary:
+    name: "📋 Version Summary"
+    runs-on: ubuntu-latest
+    needs: [detect-changes, calculate-version, create-tag-and-release]
+    if: always() && needs.detect-changes.outputs.source-changed == 'true'
+
+    steps:
+      - name: "📋 Generate Summary"
+        env:
+          NEW_VERSION: ${{ needs.calculate-version.outputs.new_version }}
+          SHOULD_BUILD: ${{ needs.calculate-version.outputs.should_build }}
+        run: |
+          {
+            echo "## 🚀 Version Increment Summary"
+            echo ""
+            echo "**Version:** $NEW_VERSION"
+            echo "**Trigger:** ${{ github.event_name }}"
+            echo "**Tag Created:** $SHOULD_BUILD"
+            echo ""
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [[ "$SHOULD_BUILD" == "true" ]]; then
+            {
+              echo "### ✅ Actions Completed"
+              echo "- 🏷️ Created git tag: \`$NEW_VERSION\`"
+              echo "- 📦 Created GitHub release"
+              echo ""
+              echo "### 🔄 Next Steps"
+              echo "- \`docker-publish.yml\` should build & push using the new tag"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "### ℹ️ No Action Required"
+              echo "Version \`$NEW_VERSION\` already exists."
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
