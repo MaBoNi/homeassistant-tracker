@@ -1,23 +1,81 @@
 version: 2
 
+# ──────────────────────────────────────────────────────────────────────────
+# Dependabot — security-updates only mode (org-wide standard)
+# ──────────────────────────────────────────────────────────────────────────
+# Routine version-update PRs are DISABLED via open-pull-requests-limit: 0.
+# The weekly digest at .github/workflows/weekly-security-report.yml is the
+# source of truth for routine bumps (Mondays 09:00 UTC).
+#
+# Security-update PRs (CVE response) are STILL ENABLED — they're a separate
+# Dependabot mode controlled by repo Settings → Code security → Dependabot
+# security updates. That toggle stays ON. When a CVE drops on a dependency
+# we use, Dependabot will still open a PR within hours.
+#
+# Ecosystems covered:
+#   - pip          → backend/requirements.txt  (ADDED — was previously missing!)
+#   - docker       → backend/Dockerfile
+#   - docker       → frontend/Dockerfile
+#   - github-actions → /.github/workflows/
+# ──────────────────────────────────────────────────────────────────────────
+
 updates:
-  # Scan for Docker updates in Dockerfile for backend
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Copenhagen"
+    open-pull-requests-limit: 0  # version-updates off; security-updates still flow
+    labels:
+      - "dependencies"
+      - "python"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+
   - package-ecosystem: "docker"
     directory: "/backend"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Copenhagen"
+    open-pull-requests-limit: 0
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
 
-  # Scan for Docker updates in Dockerfile for frontend
   - package-ecosystem: "docker"
     directory: "/frontend"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Copenhagen"
+    open-pull-requests-limit: 0
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
 
-  # Include GitHub Actions workflows
   - package-ecosystem: "github-actions"
-    directory: "/.github/workflows"
+    directory: "/"
     schedule:
       interval: "weekly"
-    open-pull-requests-limit: 5
+      day: "monday"
+      time: "06:00"
+      timezone: "Europe/Copenhagen"
+    open-pull-requests-limit: 0
+    labels:
+      - "dependencies"
+      - "github-actions"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
