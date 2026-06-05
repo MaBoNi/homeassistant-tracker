@@ -97,7 +97,6 @@ def fetch_and_save_location(user_entity):
                         device_response.status_code,
                     )
                     logger.error("Device tracker URL: %s", device_tracker_url)
-                    logger.error("Headers: %s", headers)
         else:
             logger.error(
                 "Failed to fetch data for %s. Status Code: %s",
@@ -105,11 +104,9 @@ def fetch_and_save_location(user_entity):
                 response.status_code,
             )
             logger.error("Request URL: %s", url)
-            logger.error("Headers: %s", headers)
 
     except Exception as e:
         logger.error(
             "Error occurred while fetching data for %s: %s", user_entity, str(e)
         )
         logger.error("Request URL: %s", url)
-        logger.error("Headers: %s", headers)
