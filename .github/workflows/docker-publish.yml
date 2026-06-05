@@ -11,6 +11,7 @@ permissions:
   packages: write
   id-token: write
   attestations: write
+  security-events: write
 
 jobs:
   build:
@@ -74,3 +75,22 @@ jobs:
           subject-name: index.docker.io/maboni82/homeassistant-tracker-${{ matrix.service }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
+
+      - name: Run Trivy vulnerability scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: maboni82/homeassistant-tracker-${{ matrix.service }}:${{ env.tag }}
+          format: sarif
+          output: trivy-${{ matrix.service }}.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          vuln-type: os,library
+          exit-code: '0'
+
+      - name: Upload Trivy SARIF to GitHub Security
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: trivy-${{ matrix.service }}.sarif
+          category: trivy-${{ matrix.service }}
