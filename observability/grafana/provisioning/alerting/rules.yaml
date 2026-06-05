@@ -1,0 +1,317 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: homeassistant-tracker
+    folder: HomeAssistant Tracker
+    interval: 1m
+    rules:
+      - uid: auth-failure-burst
+        title: Auth failure burst
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki-default
+            model:
+              refId: A
+              datasource:
+                type: loki
+                uid: loki-default
+              expr: 'sum(rate({service="backend"} |= "401" [5m]))'
+              queryType: range
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.0833]
+                  operator:
+                    type: and
+                  query:
+                    params: [B]
+                  reducer:
+                    type: last
+                    params: []
+                  type: query
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Auth failure burst on backend"
+          description: "More than 5 401 responses per minute over 5 minutes."
+
+      - uid: backend-5xx-spike
+        title: Backend 5xx spike
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki-default
+            model:
+              refId: A
+              datasource:
+                type: loki
+                uid: loki-default
+              expr: 'sum(rate({service="backend"} |~ " 5\\d\\d " [5m]))'
+              queryType: range
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.0167]
+                  operator:
+                    type: and
+                  query:
+                    params: [B]
+                  reducer:
+                    type: last
+                    params: []
+                  type: query
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Backend 5xx spike"
+          description: "More than 1 backend 5xx response per minute over 5 minutes."
+
+      - uid: container-restart-loop
+        title: Container restart loop
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: loki-default
+            model:
+              refId: A
+              datasource:
+                type: loki
+                uid: loki-default
+              expr: 'count_over_time({service="backend"} |= "Starting" [15m])'
+              queryType: range
+          - refId: B
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+          - refId: C
+            relativeTimeRange:
+              from: 900
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [3]
+                  operator:
+                    type: and
+                  query:
+                    params: [B]
+                  reducer:
+                    type: last
+                    params: []
+                  type: query
+        noDataState: NoData
+        execErrState: Error
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend container restart loop"
+          description: "Backend container has logged 'Starting' more than 3 times in 15 minutes."
+
+      - uid: db-connection-errors
+        title: DB connection errors
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: loki-default
+            model:
+              refId: A
+              datasource:
+                type: loki
+                uid: loki-default
+              expr: 'sum(rate({service="backend"} |~ "OperationalError|psycopg2" [5m]))'
+              queryType: range
+          - refId: B
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+          - refId: C
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [B]
+                  reducer:
+                    type: last
+                    params: []
+                  type: query
+        noDataState: NoData
+        execErrState: Error
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Database connection errors on backend"
+          description: "Backend is logging OperationalError / psycopg2 errors."
+
+      - uid: caddy-cert-near-expiry
+        title: Caddy cert near expiry
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 86400
+              to: 0
+            datasourceUid: loki-default
+            model:
+              refId: A
+              datasource:
+                type: loki
+                uid: loki-default
+              expr: 'count_over_time({container="homeassistant-tracker-caddy"} |~ "certificate.*expir" [24h])'
+              queryType: range
+          - refId: B
+            relativeTimeRange:
+              from: 86400
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+          - refId: C
+            relativeTimeRange:
+              from: 86400
+              to: 0
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              datasource:
+                type: __expr__
+                uid: __expr__
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [B]
+                  reducer:
+                    type: last
+                    params: []
+                  type: query
+        noDataState: NoData
+        execErrState: Error
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Caddy certificate near expiry"
+          description: "Caddy logs contain a certificate-expiry message in the last 24h."

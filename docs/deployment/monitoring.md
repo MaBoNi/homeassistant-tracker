@@ -38,76 +38,48 @@ Prometheus" section at the end for when that changes.
 
 ---
 
-## docker-compose stack
+## Quick start
 
-Add the following to `docker-compose.yml` (or a `docker-compose.obs.yml`
-overlay):
+Everything below is wired into the repo. To bring up the observability
+stack:
 
-```yaml
-  loki:
-    image: grafana/loki:3.2.0
-    container_name: tracker-loki
-    restart: unless-stopped
-    command: -config.file=/etc/loki/local-config.yaml
-    volumes:
-      - loki_data:/loki
-    networks: [default]
+1. Copy the contact-points template and paste your Discord webhook:
 
-  promtail:
-    image: grafana/promtail:3.2.0
-    container_name: tracker-promtail
-    restart: unless-stopped
-    command: -config.file=/etc/promtail/config.yaml
-    volumes:
-      - ./observability/promtail-config.yaml:/etc/promtail/config.yaml:ro
-      - /var/log:/var/log:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-    depends_on: [loki]
+   ```bash
+   cp observability/grafana/provisioning/alerting/contactpoints.yaml.example \
+      observability/grafana/provisioning/alerting/contactpoints.yaml
+   # edit the new file, replace REPLACE_WITH_YOUR_DISCORD_WEBHOOK_URL
+   ```
 
-  grafana:
-    image: grafana/grafana:11.3.0
-    container_name: tracker-grafana
-    restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_USERS_ALLOW_SIGN_UP=false
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
-    ports:
-      - "127.0.0.1:3000:3000"   # Front with Caddy / Tailscale, not public
-    depends_on: [loki]
+2. Set `GRAFANA_ADMIN_PASSWORD` in your `.env` (see `.env.template`).
 
-volumes:
-  loki_data:
-  grafana_data:
-```
+3. Bring up the stack:
 
-`promtail-config.yaml` should use the `docker_sd_config` discovery so
-every container picks up labels automatically:
+   ```bash
+   docker compose --profile observability up -d
+   ```
 
-```yaml
-server:
-  http_listen_port: 9080
+4. Grafana: http://127.0.0.1:3000 (admin / your password). Front with
+   Caddy / Tailscale for any non-local access — the port is bound to
+   `127.0.0.1` on purpose.
 
-positions:
-  filename: /tmp/positions.yaml
+Without the `--profile observability` flag, `docker compose up`
+continues to start only `backend`, `frontend`, `db` — exactly as before.
 
-clients:
-  - url: http://loki:3100/loki/api/v1/push
+## File layout
 
-scrape_configs:
-  - job_name: docker
-    docker_sd_configs:
-      - host: unix:///var/run/docker.sock
-        refresh_interval: 5s
-    relabel_configs:
-      - source_labels: ["__meta_docker_container_name"]
-        target_label: container
-      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
-        target_label: service
-```
+- `docker-compose.yml` — `loki`, `promtail`, `grafana` services, gated
+  by the `observability` profile.
+- `observability/loki-config.yaml` — Loki config, 14-day retention.
+- `observability/promtail-config.yaml` — Docker socket discovery, ships
+  every container's logs to Loki with `service` / `container` labels.
+- `observability/grafana/provisioning/datasources/loki.yaml` —
+  auto-wires Loki as the default datasource.
+- `observability/grafana/provisioning/alerting/rules.yaml` — the 5 alert
+  rules below, provisioned at boot.
+- `observability/grafana/provisioning/alerting/contactpoints.yaml.example`
+  — Discord webhook template. The real file is gitignored; copy it,
+  fill it in, and Grafana picks it up on next restart.
 
 ---
 

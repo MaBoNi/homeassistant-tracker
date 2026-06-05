@@ -56,5 +56,49 @@ services:
       interval: 10s
       retries: 5
 
+  loki:
+    image: grafana/loki:3.2.0
+    container_name: tracker-loki
+    restart: unless-stopped
+    command: -config.file=/etc/loki/local-config.yaml
+    profiles: [observability]
+    volumes:
+      - loki_data:/loki
+      - ./observability/loki-config.yaml:/etc/loki/local-config.yaml:ro
+
+  promtail:
+    image: grafana/promtail:3.2.0
+    container_name: tracker-promtail
+    restart: unless-stopped
+    command: -config.file=/etc/promtail/config.yaml
+    profiles: [observability]
+    volumes:
+      - ./observability/promtail-config.yaml:/etc/promtail/config.yaml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: tracker-grafana
+    restart: unless-stopped
+    profiles: [observability]
+    environment:
+      # Set GRAFANA_ADMIN_PASSWORD in your .env (see .env.example) before
+      # running with --profile observability. Default below is intentionally
+      # weak so `docker compose up` without the profile keeps working.
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-changeme-please}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_FEATURE_TOGGLES_ENABLE=alertingApiServer
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on: [loki]
+
 volumes:
   postgres_data:
+  loki_data:
+  grafana_data:
