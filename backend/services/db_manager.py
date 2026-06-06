@@ -224,3 +224,95 @@ def get_devices_for_user(user):
         session.rollback()
         logger.error("Error retrieving devices for user %s: %s", user, str(e))
         return []
+
+
+def _haversine_km(lat1, lon1, lat2, lon2):
+    """Great-circle distance between two lat/lon points, in kilometers.
+
+    Standard haversine formula. Used for per-user distance stats (#22).
+    """
+    import math
+    r = 6371.0  # Earth radius km
+    rlat1, rlat2 = math.radians(lat1), math.radians(lat2)
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2) ** 2 + math.cos(rlat1) * math.cos(rlat2) * math.sin(dlon / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def get_user_stats(user, start_date=None, end_date=None):
+    """
+    Aggregate per-user GPS stats over an optional date window.
+
+    Returns a dict:
+        {
+            "total_distance_km": float,
+            "avg_speed_kmh": float,
+            "point_count": int,
+            "period": {"start": iso|null, "end": iso|null},
+            "points_per_hour": {0..23: count},
+        }
+
+    Edge cases:
+        - Fewer than two points → distance = 0, avg_speed = 0.
+        - End timestamp == start timestamp → avg_speed = 0 (avoid div-by-zero).
+    """
+    try:
+        if user.startswith("person."):
+            user = user.replace("person.", "")
+
+        query = session.query(GPSLog).filter_by(user=user)
+        if start_date is not None:
+            query = query.filter(GPSLog.timestamp >= start_date)
+        if end_date is not None:
+            query = query.filter(GPSLog.timestamp <= end_date)
+        logs = query.order_by(GPSLog.timestamp).all()
+
+        # Bucket points by hour-of-day for the chart on the frontend.
+        points_per_hour = {h: 0 for h in range(24)}
+        for log in logs:
+            points_per_hour[log.timestamp.hour] += 1
+
+        if len(logs) < 2:
+            return {
+                "total_distance_km": 0.0,
+                "avg_speed_kmh": 0.0,
+                "point_count": len(logs),
+                "period": {
+                    "start": logs[0].timestamp.isoformat() if logs else None,
+                    "end": logs[-1].timestamp.isoformat() if logs else None,
+                },
+                "points_per_hour": points_per_hour,
+            }
+
+        total_km = 0.0
+        for prev, curr in zip(logs, logs[1:]):
+            total_km += _haversine_km(
+                prev.latitude, prev.longitude, curr.latitude, curr.longitude
+            )
+
+        total_seconds = (logs[-1].timestamp - logs[0].timestamp).total_seconds()
+        avg_kmh = (total_km / (total_seconds / 3600.0)) if total_seconds > 0 else 0.0
+
+        return {
+            "total_distance_km": round(total_km, 3),
+            "avg_speed_kmh": round(avg_kmh, 3),
+            "point_count": len(logs),
+            "period": {
+                "start": logs[0].timestamp.isoformat(),
+                "end": logs[-1].timestamp.isoformat(),
+            },
+            "points_per_hour": points_per_hour,
+        }
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Error computing stats for user %s: %s", user, str(e))
+        # Log details server-side only; don't leak exception text to the client.
+        return {
+            "total_distance_km": 0.0,
+            "avg_speed_kmh": 0.0,
+            "point_count": 0,
+            "period": {"start": None, "end": None},
+            "points_per_hour": {h: 0 for h in range(24)},
+        }

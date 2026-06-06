@@ -11,7 +11,12 @@ import requests
 from sqlalchemy import text
 
 from config.db import engine
-from services.db_manager import get_gps_logs, get_unique_users, get_devices_for_user
+from services.db_manager import (
+    get_gps_logs,
+    get_unique_users,
+    get_devices_for_user,
+    get_user_stats,
+)
 from . import api_bp
 from .auth import token_required
 
@@ -118,6 +123,31 @@ def get_user_devices(username):
     """
     devices = get_devices_for_user(username)
     return jsonify(devices or []), 200
+
+
+@api_bp.route("/users/<username>/stats", methods=["GET"])
+@token_required
+def get_user_stats_route(username):
+    """
+    Per-user aggregate stats over an optional date window (issue #22).
+
+    Query parameters:
+        start_date, end_date — ISO date / datetime. Both optional.
+    """
+    raw_start = request.args.get("start_date")
+    raw_end = request.args.get("end_date")
+    try:
+        start_date = _parse_iso_date(raw_start)
+        end_date = _parse_iso_date(raw_end, end_of_day=True)
+    except ValueError:
+        # Don't leak parser internals / user input back to the client.
+        return jsonify({"error": "Invalid start_date or end_date (use YYYY-MM-DD)"}), 400
+
+    if start_date and not end_date and raw_start and len(raw_start) == 10:
+        end_date = start_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    stats = get_user_stats(username, start_date=start_date, end_date=end_date)
+    return jsonify(stats), 200
 
 
 @api_bp.route("/healthz", methods=["GET"])
