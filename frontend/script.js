@@ -133,10 +133,35 @@ document.addEventListener('DOMContentLoaded', function() {
 function fetchGPSData(selectedUser) {
     const timeSelect = document.getElementById('time-select');
     const timeRange = timeSelect.value;
-    const url = `${backendApiUrl}/api/gps-data?user=${selectedUser}&time_range=${timeRange}`;  // URL with selected user and time range
+
+    // Build the URL with URLSearchParams so we can layer in optional filters
+    // (device — #102, custom date range — #16) without manual string concat.
+    const params = new URLSearchParams({ user: selectedUser });
+    if (timeRange === 'custom') {
+        // Custom date range support (issue #16). When the user picks "custom",
+        // we forward start_date/end_date (YYYY-MM-DD) to the backend instead
+        // of a relative bucket. Backend accepts ISO dates and returns 200/[]
+        // when the range is empty.
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+        if (!startDate && !endDate) {
+            // Nothing chosen yet — default to today.
+            const today = new Date().toISOString().slice(0, 10);
+            params.set('start_date', today);
+        } else {
+            if (startDate) params.set('start_date', startDate);
+            if (endDate) params.set('end_date', endDate);
+        }
+    } else {
+        params.set('time_range', timeRange);
+    }
+
+    // Optional device filter (issue #20).
     const deviceSelect = document.getElementById('device-select');
     const selectedDevice = deviceSelect ? deviceSelect.value : '';
-    const fullUrl = selectedDevice ? `${url}&device=${encodeURIComponent(selectedDevice)}` : url;
+    if (selectedDevice) params.set('device', selectedDevice);
+
+    const fullUrl = `${backendApiUrl}/api/gps-data?${params.toString()}`;
 
     fetch(fullUrl, {
         headers: {
@@ -161,6 +186,8 @@ function fetchGPSData(selectedUser) {
             errorElement.textContent = (deviceSel && deviceSel.value)
                 ? `No GPS logs for device "${deviceSel.value}" in this range.`
                 : 'No data found!';
+
+            errorElement.textContent = 'No GPS logs for the selected date range.';
             return;
         }
 
@@ -225,12 +252,33 @@ function fetchGPSData(selectedUser) {
 
 // Add event listener for time range selector to reload data
 document.getElementById('time-select').addEventListener('change', function() {
+    // Reveal the date-range pickers when the user chooses "custom".
+    const dateRange = document.getElementById('date-range');
+    if (this.value === 'custom') {
+        dateRange.hidden = false;
+    } else {
+        dateRange.hidden = true;
+    }
+
     const userSelect = document.getElementById('user-select');
-    if (userSelect.value !== '') {
+    if (userSelect.value !== '' && this.value !== 'custom') {
         fetchGPSData(userSelect.value);  // Fetch data for the selected user when the time range changes
         updateLastUpdatedTime();  // Update the "Last updated at" time when time range changes
     }
 });
+
+// "Apply" button for custom date range (issue #16). Defer the fetch until the
+// user explicitly confirms so we don't spam the backend on every date keystroke.
+const applyDateRangeBtn = document.getElementById('apply-date-range');
+if (applyDateRangeBtn) {
+    applyDateRangeBtn.addEventListener('click', function() {
+        const userSelect = document.getElementById('user-select');
+        if (userSelect.value !== '') {
+            fetchGPSData(userSelect.value);
+            updateLastUpdatedTime();
+        }
+    });
+}
 
 // Add auto-refresh functionality every 30 seconds
 setInterval(() => {

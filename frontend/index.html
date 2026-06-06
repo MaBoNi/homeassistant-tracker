@@ -32,7 +32,16 @@
                 <option value="last_day">Last Day</option>
                 <option value="last_7_days">Last 7 Days</option>
                 <option value="last_30_days">Last 1 Month</option>
+                <option value="custom">Custom date range…</option>
             </select>
+
+            <div class="date-range" id="date-range" hidden>
+                <label for="start-date">From:</label>
+                <input type="date" id="start-date">
+                <label for="end-date">To:</label>
+                <input type="date" id="end-date">
+                <button type="button" id="apply-date-range">Apply</button>
+            </div>
 
             <div class="time-info">
                 <div id="local-time"></div>

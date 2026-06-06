@@ -98,14 +98,17 @@ def save_gps_log(user, device, latitude, longitude, accuracy, timestamp):
         )
 
 
-def get_gps_logs(user, time_range, device=None):
+def get_gps_logs(user, time_range, device=None, start_date=None, end_date=None):
     """
-    Retrieve GPS logs for a given user and optional device/time range.
+    Retrieve GPS logs for a given user and optional device/time range/date range.
 
     Args:
         user (str): Username (stripped of 'person.')
         time_range (str): A time window like 'last_hour', 'last_day', etc.
         device (str, optional): Specific device to filter by.
+        start_date (datetime, optional): Inclusive lower bound on timestamp.
+            Overrides ``time_range`` when supplied.
+        end_date (datetime, optional): Inclusive upper bound on timestamp.
 
     Returns:
         list: List of GPS logs as dictionaries.
@@ -120,23 +123,32 @@ def get_gps_logs(user, time_range, device=None):
 
         query = session.query(GPSLog).filter_by(user=user)
 
-        # Time filter
-        time_map = {
-            "last_hour": timedelta(hours=1),
-            "last_2_hours": timedelta(hours=2),
-            "last_3_hours": timedelta(hours=3),
-            "last_6_hours": timedelta(hours=6),
-            "last_day": timedelta(days=1),
-            "last_7_days": timedelta(days=7),
-            "last_30_days": timedelta(days=30),
-        }
+        # Explicit date range wins over the relative time_range bucket.
+        if start_date is not None or end_date is not None:
+            if start_date is not None:
+                logger.info("Applying start_date filter: %s", start_date)
+                query = query.filter(GPSLog.timestamp >= start_date)
+            if end_date is not None:
+                logger.info("Applying end_date filter: %s", end_date)
+                query = query.filter(GPSLog.timestamp <= end_date)
+        else:
+            # Time filter
+            time_map = {
+                "last_hour": timedelta(hours=1),
+                "last_2_hours": timedelta(hours=2),
+                "last_3_hours": timedelta(hours=3),
+                "last_6_hours": timedelta(hours=6),
+                "last_day": timedelta(days=1),
+                "last_7_days": timedelta(days=7),
+                "last_30_days": timedelta(days=30),
+            }
 
-        if time_range != "live":
-            time_limit = datetime.now(timezone.utc) - time_map.get(
-                time_range, timedelta(0)
-            )
-            logger.info("Applying time filter: %s", time_limit)
-            query = query.filter(GPSLog.timestamp > time_limit)
+            if time_range != "live":
+                time_limit = datetime.now(timezone.utc) - time_map.get(
+                    time_range, timedelta(0)
+                )
+                logger.info("Applying time filter: %s", time_limit)
+                query = query.filter(GPSLog.timestamp > time_limit)
 
         if device:
             logger.info("Applying device filter: %s", device.lower())
