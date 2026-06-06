@@ -124,4 +124,117 @@ table tbody tr:hover {
     border: 1px solid #003366;
     border-radius: 5px;
     color: #003366;
+
+/* ---------------------------------------------------------------------------
+ * Responsive layout (issue #23)
+ *
+ * Mobile-first tweaks: stack control panels, expand the map to take more
+ * vertical space on small screens, enlarge tap targets to ≥44px (WCAG /
+ * Apple HIG recommendation), and let the GPS log table scroll horizontally
+ * instead of overflowing the viewport. Non-essential chrome (extra padding,
+ * decorative borders) is trimmed on the smallest screens.
+ * ------------------------------------------------------------------------- */
+
+/* Make sure interactive controls are always large enough to tap comfortably. */
+#user-select,
+#time-select,
+button,
+input[type="date"],
+input[type="button"],
+input[type="submit"] {
+    min-height: 44px;
 }
+
+/* Allow the data table to scroll horizontally rather than break the layout. */
+#gps-data-table {
+    display: table;
+}
+
+@media (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    .container {
+        width: 100%;
+    }
+
+    h1 {
+        font-size: 1.4em;
+        margin: 10px 0;
+    }
+
+    /* Stack the controls vertically so each is full-width and easy to tap. */
+    .selectors {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+
+    .selectors label {
+        text-align: left;
+        font-weight: 600;
+    }
+
+    #user-select,
+    #time-select {
+        width: 100%;
+        margin-left: 0;
+        font-size: 16px; /* iOS won't zoom into inputs ≥16px */
+    }
+
+    .time-info {
+        margin-left: 0;
+        text-align: center;
+    }
+
+    /* Give the map most of the viewport on tablets/phones. */
+    #map {
+        height: 60vh;
+        min-height: 320px;
+    }
+
+    /* Let the table scroll horizontally inside its wrapper. */
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table th,
+    table td {
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding: 6px;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+    }
+
+    h1 {
+        font-size: 1.15em;
+    }
+
+    /* Map fills almost the whole viewport on phones — the route is the point. */
+    #map {
+        height: 70vh;
+        min-height: 280px;
+        margin-top: 10px;
+    }
+
+    /* De-emphasize the raw data table on very small screens; keep it scrollable
+     * but de-prioritized visually. */
+    table th,
+    table td {
+        padding: 8px 10px;
+        font-size: 13px;
+    }
+
+    .time-info {
+        font-size: 12px;
+        padding: 4px;
+    }}
