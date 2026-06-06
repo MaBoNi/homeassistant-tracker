@@ -105,6 +105,23 @@ table tbody tr:hover {
     flex-wrap: wrap;
 }
 .playback-controls button {
+
+/* Custom date range picker (issue #16) */
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.date-range input[type="date"] {
+    padding: 8px;
+    font-size: 16px;
+    background-color: #e0e7ff;
+    border: 1px solid #003366;
+    border-radius: 5px;
+    color: #003366;
+}
+.date-range button {
     padding: 8px 14px;
     background-color: #005b96;
     color: #fff;
@@ -238,3 +255,6 @@ input[type="submit"] {
         font-size: 12px;
         padding: 4px;
     }}
+
+}
+.date-range button:hover { background-color: #004080; }

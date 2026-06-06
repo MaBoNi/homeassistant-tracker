@@ -4,6 +4,7 @@ Defines all Flask routes for the Home Assistant Tracker API.
 """
 
 import os
+from datetime import datetime, time as dtime, timezone
 
 from flask import request, jsonify
 import requests
@@ -19,21 +20,77 @@ HA_TOKEN = os.getenv("HA_TOKEN")
 HA_API_URL = os.getenv("HA_API_URL")
 
 
+def _parse_iso_date(value, end_of_day=False):
+    """Parse an ISO date or datetime string. Returns datetime or None.
+
+    Accepts ``YYYY-MM-DD`` (interpreted as midnight UTC, or 23:59:59.999999 UTC
+    when ``end_of_day=True``) and full ISO-8601 timestamps (``end_of_day`` is
+    ignored for those — the caller already specified the exact instant they
+    want). Returns ``None`` if ``value`` is falsy. Raises ``ValueError`` on a
+    malformed input so the caller can return HTTP 400.
+
+    The ``end_of_day`` flag fixes the symmetric-single-day bug: a request like
+    ``start_date=2026-06-01&end_date=2026-06-01`` would otherwise collapse to
+    a single instant (midnight) and return no rows.
+    """
+    if not value:
+        return None
+    try:
+        # date-only fast path
+        if len(value) == 10 and value[4] == "-" and value[7] == "-":
+            d = datetime.strptime(value, "%Y-%m-%d").date()
+            t = dtime.max if end_of_day else dtime.min
+            return datetime.combine(d, t, tzinfo=timezone.utc)
+        # full ISO-8601; tolerate trailing 'Z'
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"Invalid ISO date: {value!r}") from exc
+
+
 @api_bp.route("/gps-data", methods=["GET"])
 @token_required
 def get_gps_data():
     """
-    Fetch GPS data based on user and time_range.
+    Fetch GPS data based on user, optional time_range, and optional date range.
+
+    Query parameters:
+        user (str, required): The user whose logs to return.
+        time_range (str): Relative time bucket (default ``live``). Ignored
+            when ``start_date`` or ``end_date`` is supplied.
+        start_date (str): ISO date/datetime, inclusive lower bound. Defaults
+            to midnight UTC of the current day when neither bound is given
+            and ``time_range`` is omitted.
+        end_date (str): ISO date/datetime, inclusive upper bound.
     """
     user = request.args.get("user")
     time_range = request.args.get("time_range", "live")  # default to 'live'
     device = request.args.get("device") or None
-    data = get_gps_logs(user, time_range, device=device)
+    raw_start = request.args.get("start_date")
+    raw_end = request.args.get("end_date")
 
-    if not data:
-        return jsonify({"message": "No data found!"}), 404
+    try:
+        start_date = _parse_iso_date(raw_start)
+        end_date = _parse_iso_date(raw_end, end_of_day=True)
+    except ValueError:
+        # Don't leak parser internals / user input back to the client.
+        return jsonify({"error": "Invalid start_date or end_date (use YYYY-MM-DD)"}), 400
 
-    return jsonify(data), 200
+    # If the caller passed start_date but no end_date, treat end_date as the
+    # end of that same day (so a single-day query is intuitive).
+    if start_date and not end_date and raw_start and len(raw_start) == 10:
+        end_date = start_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+
+    data = get_gps_logs(
+        user,
+        time_range,
+        device=device,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    # Always 200 — empty array is a valid result. Frontend renders the
+    # "no logs in that range" message itself.
+    return jsonify(data or []), 200
 
 
 @api_bp.route("/users", methods=["GET"])
