@@ -95,3 +95,33 @@ table tbody tr:hover {
     margin-left: 10px;      /* Add margin to give space from the selectors */
     text-align: left;       /* Align text to the left for a cleaner look */
 }
+
+/* Playback controls (issue #18) */
+.playback-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0;
+    flex-wrap: wrap;
+}
+.playback-controls button {
+    padding: 8px 14px;
+    background-color: #005b96;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
+.playback-controls button[disabled] {
+    background-color: #99b7d0;
+    cursor: not-allowed;
+}
+.playback-controls button:not([disabled]):hover { background-color: #004080; }
+#speed-select {
+    padding: 8px;
+    background-color: #e0e7ff;
+    border: 1px solid #003366;
+    border-radius: 5px;
+    color: #003366;
+}

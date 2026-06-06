@@ -159,6 +159,13 @@ function fetchGPSData(selectedUser) {
 
             // Adjust map view to fit the plotted route
             map.fitBounds(coordinates);
+
+            // Issue #18: stash the route so the animation controls can replay it.
+            window.__routeCoordinates = coordinates.slice();
+            resetPlayback();
+        } else {
+            window.__routeCoordinates = [];
+            resetPlayback();
         }
 
         // Update the "Last updated at" time after the data fetch is completed
@@ -187,3 +194,155 @@ setInterval(() => {
         updateLastUpdatedTime();  // Update the "Last updated at" time on auto-refresh
     }
 }, 30000); // 30 seconds
+
+// ----------------------------------------------------------------------------
+// Animated route playback (issue #18)
+//
+// Vanilla Leaflet + setInterval. We interpolate between consecutive points so
+// a 1× pass takes roughly the real elapsed time, capped to a sane minimum
+// per-segment dwell so single-shot replays of long routes don't take hours.
+// The car icon is an inline data-URI SVG — no asset file needed.
+// ----------------------------------------------------------------------------
+
+const CAR_SVG = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' width='32' height='32'>
+  <rect x='4' y='10' width='24' height='10' rx='2' fill='#d62828' stroke='#000' stroke-width='1'/>
+  <rect x='8' y='6' width='16' height='6' rx='1' fill='#f1faee' stroke='#000' stroke-width='1'/>
+  <circle cx='10' cy='22' r='3' fill='#1d1d1d'/>
+  <circle cx='22' cy='22' r='3' fill='#1d1d1d'/>
+  <circle cx='10' cy='22' r='1.2' fill='#888'/>
+  <circle cx='22' cy='22' r='1.2' fill='#888'/>
+</svg>`;
+const CAR_ICON = L.icon({
+    iconUrl: 'data:image/svg+xml;base64,' + btoa(CAR_SVG),
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+});
+
+const playback = {
+    marker: null,
+    timer: null,
+    index: 0,           // index of the current segment start
+    subStep: 0,         // 0..STEPS_PER_SEGMENT-1 progress along current segment
+    speedMultiplier: 2,
+    paused: true,
+};
+
+const STEPS_PER_SEGMENT = 20;   // smoother = higher; cheaper = lower
+const BASE_TICK_MS = 60;        // tick interval at 1× speed
+
+function tickInterval() {
+    // Higher speed → shorter tick interval (clamped so we don't kill the browser).
+    return Math.max(8, Math.round(BASE_TICK_MS / playback.speedMultiplier));
+}
+
+function resetPlayback() {
+    if (playback.timer) {
+        clearInterval(playback.timer);
+        playback.timer = null;
+    }
+    if (playback.marker) {
+        map.removeLayer(playback.marker);
+        playback.marker = null;
+    }
+    playback.index = 0;
+    playback.subStep = 0;
+    playback.paused = true;
+
+    const playBtn = document.getElementById('play-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const hasRoute = (window.__routeCoordinates || []).length >= 2;
+    if (playBtn) {
+        playBtn.disabled = !hasRoute;
+        playBtn.textContent = '▶ Play';
+    }
+    if (pauseBtn) pauseBtn.disabled = true;
+}
+
+function interp(a, b, t) {
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+}
+
+function playbackTick() {
+    const route = window.__routeCoordinates || [];
+    if (route.length < 2) return;
+
+    const a = route[playback.index];
+    const b = route[playback.index + 1];
+    const t = playback.subStep / STEPS_PER_SEGMENT;
+    const [lat, lng] = interp(a, b, t);
+
+    if (!playback.marker) {
+        playback.marker = L.marker([lat, lng], { icon: CAR_ICON, zIndexOffset: 1000 }).addTo(map);
+    } else {
+        playback.marker.setLatLng([lat, lng]);
+    }
+
+    playback.subStep += 1;
+    if (playback.subStep >= STEPS_PER_SEGMENT) {
+        playback.subStep = 0;
+        playback.index += 1;
+        if (playback.index >= route.length - 1) {
+            // Snap to final point and stop.
+            const last = route[route.length - 1];
+            playback.marker.setLatLng(last);
+            clearInterval(playback.timer);
+            playback.timer = null;
+            playback.paused = true;
+            const playBtn = document.getElementById('play-btn');
+            const pauseBtn = document.getElementById('pause-btn');
+            if (playBtn) playBtn.textContent = '▶ Replay';
+            if (playBtn) playBtn.disabled = false;
+            if (pauseBtn) pauseBtn.disabled = true;
+        }
+    }
+}
+
+function startPlayback() {
+    const route = window.__routeCoordinates || [];
+    if (route.length < 2) return;
+
+    // If we finished the previous run, rewind.
+    if (playback.index >= route.length - 1) {
+        playback.index = 0;
+        playback.subStep = 0;
+        if (playback.marker) { map.removeLayer(playback.marker); playback.marker = null; }
+    }
+
+    playback.paused = false;
+    if (playback.timer) clearInterval(playback.timer);
+    playback.timer = setInterval(playbackTick, tickInterval());
+
+    document.getElementById('play-btn').textContent = '▶ Playing…';
+    document.getElementById('play-btn').disabled = true;
+    document.getElementById('pause-btn').disabled = false;
+}
+
+function pausePlayback() {
+    if (playback.timer) {
+        clearInterval(playback.timer);
+        playback.timer = null;
+    }
+    playback.paused = true;
+    document.getElementById('play-btn').textContent = '▶ Resume';
+    document.getElementById('play-btn').disabled = false;
+    document.getElementById('pause-btn').disabled = true;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const playBtn = document.getElementById('play-btn');
+    const pauseBtn = document.getElementById('pause-btn');
+    const speedSelect = document.getElementById('speed-select');
+    if (playBtn) playBtn.addEventListener('click', startPlayback);
+    if (pauseBtn) pauseBtn.addEventListener('click', pausePlayback);
+    if (speedSelect) {
+        speedSelect.addEventListener('change', function() {
+            playback.speedMultiplier = parseFloat(this.value) || 1;
+            // Reschedule the timer at the new cadence if currently playing.
+            if (playback.timer) {
+                clearInterval(playback.timer);
+                playback.timer = setInterval(playbackTick, tickInterval());
+            }
+        });
+        playback.speedMultiplier = parseFloat(speedSelect.value) || 1;
+    }
+});
