@@ -180,3 +180,35 @@ def get_unique_users():
         session.rollback()
         logger.error("Error retrieving unique users: %s", str(e))
         return []
+
+
+def get_devices_for_user(user):
+    """
+    Get the distinct device identifiers seen in GPS logs for ``user``.
+
+    Args:
+        user (str): Username (the ``person.`` prefix is stripped if present).
+
+    Returns:
+        list[str]: Sorted list of distinct device IDs. Empty when the user
+        has no logs (rather than returning ``None``) so callers can iterate
+        unconditionally.
+    """
+    try:
+        if user.startswith("person."):
+            user = user.replace("person.", "")
+
+        rows = (
+            session.query(GPSLog.device)
+            .filter_by(user=user)
+            .distinct()
+            .all()
+        )
+        devices = sorted({row[0] for row in rows if row[0]})
+        logger.info("Found %d distinct devices for user: %s", len(devices), user)
+        return devices
+
+    except Exception as e:
+        session.rollback()
+        logger.error("Error retrieving devices for user %s: %s", user, str(e))
+        return []

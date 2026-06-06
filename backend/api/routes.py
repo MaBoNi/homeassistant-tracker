@@ -10,7 +10,7 @@ import requests
 from sqlalchemy import text
 
 from config.db import engine
-from services.db_manager import get_gps_logs, get_unique_users
+from services.db_manager import get_gps_logs, get_unique_users, get_devices_for_user
 from . import api_bp
 from .auth import token_required
 
@@ -27,7 +27,8 @@ def get_gps_data():
     """
     user = request.args.get("user")
     time_range = request.args.get("time_range", "live")  # default to 'live'
-    data = get_gps_logs(user, time_range)
+    device = request.args.get("device") or None
+    data = get_gps_logs(user, time_range, device=device)
 
     if not data:
         return jsonify({"message": "No data found!"}), 404
@@ -47,6 +48,19 @@ def get_users():
         return jsonify({"message": "No users found!"}), 404
 
     return jsonify(users), 200
+
+
+@api_bp.route("/users/<username>/devices", methods=["GET"])
+@token_required
+def get_user_devices(username):
+    """
+    Get the distinct device identifiers ever seen for ``username``.
+
+    Returns 200 with ``[]`` when the user has no devices (so the frontend can
+    render a friendly empty-state rather than handling a 404).
+    """
+    devices = get_devices_for_user(username)
+    return jsonify(devices or []), 200
 
 
 @api_bp.route("/healthz", methods=["GET"])
