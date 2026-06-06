@@ -83,19 +83,62 @@ function fetchUsers() {
     // Add event listener to fetch data when a valid user is selected
     userSelect.addEventListener('change', function() {
         if (userSelect.value !== '') {
+            fetchDevicesForUser(userSelect.value);
             fetchGPSData(userSelect.value);  // Fetch data for the selected user
             updateLastUpdatedTime();  // Update the "Last updated at" time when user changes
         }
     });
 }
 
+// Populate the device dropdown for the current user (issue #20). Always
+// includes an "All devices" option that maps to no device filter.
+function fetchDevicesForUser(selectedUser) {
+    const deviceSelect = document.getElementById('device-select');
+    if (!deviceSelect) return;
+    const url = `${backendApiUrl}/api/users/${encodeURIComponent(selectedUser)}/devices`;
+
+    fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(response => response.json())
+        .then(devices => {
+            // Reset to just the "All devices" sentinel before re-populating.
+            deviceSelect.innerHTML = '<option value="">All devices</option>';
+            if (!devices || devices.length === 0) return;
+            devices.forEach(device => {
+                const option = document.createElement('option');
+                option.value = device;
+                option.textContent = device;
+                deviceSelect.appendChild(option);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching devices:', error);
+        });
+}
+
+// Re-fetch GPS data whenever the device selection changes.
+document.addEventListener('DOMContentLoaded', function() {
+    const deviceSelect = document.getElementById('device-select');
+    if (deviceSelect) {
+        deviceSelect.addEventListener('change', function() {
+            const userSelect = document.getElementById('user-select');
+            if (userSelect.value !== '') {
+                fetchGPSData(userSelect.value);
+                updateLastUpdatedTime();
+            }
+        });
+    }
+});
+
 // Fetch GPS data for the selected user and time range, and plot it on the map
 function fetchGPSData(selectedUser) {
     const timeSelect = document.getElementById('time-select');
     const timeRange = timeSelect.value;
     const url = `${backendApiUrl}/api/gps-data?user=${selectedUser}&time_range=${timeRange}`;  // URL with selected user and time range
+    const deviceSelect = document.getElementById('device-select');
+    const selectedDevice = deviceSelect ? deviceSelect.value : '';
+    const fullUrl = selectedDevice ? `${url}&device=${encodeURIComponent(selectedDevice)}` : url;
 
-    fetch(url, {
+    fetch(fullUrl, {
         headers: {
             'Authorization': `Bearer ${token}`,  // Using token from the environment
         }
@@ -114,7 +157,10 @@ function fetchGPSData(selectedUser) {
         });
 
         if (!data || data.length === 0) {
-            errorElement.textContent = 'No data found!';
+            const deviceSel = document.getElementById('device-select');
+            errorElement.textContent = (deviceSel && deviceSel.value)
+                ? `No GPS logs for device "${deviceSel.value}" in this range.`
+                : 'No data found!';
             return;
         }
 

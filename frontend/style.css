@@ -72,7 +72,7 @@ table tbody tr:hover {
     gap: 10px;  /* Add some space between the selectors */
 }
 
-#user-select, #time-select {
+#user-select, #time-select, #device-select {
     padding: 10px;
     font-size: 16px;
     background-color: #e0e7ff;
