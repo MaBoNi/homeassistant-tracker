@@ -38,6 +38,18 @@
         <!-- Map container -->
         <div id="map" style="height: 400px;"></div>
 
+        <!-- Playback controls for animated route replay (issue #18) -->
+        <div class="playback-controls">
+            <button type="button" id="play-btn" disabled>▶ Play</button>
+            <button type="button" id="pause-btn" disabled>⏸ Pause</button>
+            <label for="speed-select">Speed:</label>
+            <select id="speed-select">
+                <option value="1">1×</option>
+                <option value="2" selected>2×</option>
+                <option value="4">4×</option>
+            </select>
+        </div>
+
         <div id="error"></div>  <!-- Error message will appear here -->
 
         <table id="gps-data-table">
