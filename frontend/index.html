@@ -65,6 +65,25 @@
             </select>
         </div>
 
+        <!-- Per-user stats panel (issue #22). Hidden until a user is picked. -->
+        <div id="stats-panel" class="stats-panel" hidden>
+            <div class="stats-grid">
+                <div class="stat">
+                    <div class="stat-label">Total distance</div>
+                    <div class="stat-value" id="stat-distance">—</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Avg speed</div>
+                    <div class="stat-value" id="stat-speed">—</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">Points</div>
+                    <div class="stat-value" id="stat-points">—</div>
+                </div>
+            </div>
+            <canvas id="stats-chart" height="120"></canvas>
+        </div>
+
         <div id="error"></div>  <!-- Error message will appear here -->
 
         <table id="gps-data-table">

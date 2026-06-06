@@ -440,3 +440,95 @@ document.addEventListener('DOMContentLoaded', function() {
         playback.speedMultiplier = parseFloat(speedSelect.value) || 1;
     }
 });
+
+// ----------------------------------------------------------------------------
+// Per-user stats + chart (issue #22)
+//
+// We render three numeric "tiles" (distance / avg speed / point count) plus a
+// 24-bucket bar chart of points-per-hour-of-day. Chart.js is lazy-loaded from
+// a CDN on first use so the page-load cost is zero for users who never look
+// at stats.
+// ----------------------------------------------------------------------------
+
+let chartJsLoadPromise = null;
+let statsChartInstance = null;
+
+function loadChartJs() {
+    if (window.Chart) return Promise.resolve(window.Chart);
+    if (chartJsLoadPromise) return chartJsLoadPromise;
+    chartJsLoadPromise = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+        s.onload = () => resolve(window.Chart);
+        s.onerror = () => reject(new Error('Failed to load Chart.js'));
+        document.head.appendChild(s);
+    });
+    return chartJsLoadPromise;
+}
+
+function fetchUserStats(selectedUser) {
+    const panel = document.getElementById('stats-panel');
+    if (!panel) return;
+    const url = `${backendApiUrl}/api/users/${encodeURIComponent(selectedUser)}/stats`;
+
+    fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(stats => {
+            panel.hidden = false;
+            document.getElementById('stat-distance').textContent =
+                `${(stats.total_distance_km || 0).toFixed(2)} km`;
+            document.getElementById('stat-speed').textContent =
+                `${(stats.avg_speed_kmh || 0).toFixed(1)} km/h`;
+            document.getElementById('stat-points').textContent =
+                stats.point_count ?? 0;
+
+            // Render the points-per-hour bar chart, lazy-loading Chart.js.
+            loadChartJs().then(Chart => {
+                const buckets = stats.points_per_hour || {};
+                const labels = [];
+                const data = [];
+                for (let h = 0; h < 24; h++) {
+                    labels.push(`${String(h).padStart(2, '0')}:00`);
+                    data.push(buckets[h] ?? buckets[String(h)] ?? 0);
+                }
+                const ctx = document.getElementById('stats-chart').getContext('2d');
+                if (statsChartInstance) {
+                    statsChartInstance.data.labels = labels;
+                    statsChartInstance.data.datasets[0].data = data;
+                    statsChartInstance.update();
+                    return;
+                }
+                statsChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Points per hour-of-day',
+                            data,
+                            backgroundColor: 'rgba(0, 91, 150, 0.6)',
+                            borderColor: '#005b96',
+                            borderWidth: 1,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                    },
+                });
+            }).catch(err => console.error(err));
+        })
+        .catch(err => {
+            console.error('Error fetching stats:', err);
+        });
+}
+
+// Hook stats refresh into the existing user-change flow.
+document.addEventListener('DOMContentLoaded', function() {
+    const userSelect = document.getElementById('user-select');
+    if (userSelect) {
+        userSelect.addEventListener('change', function() {
+            if (userSelect.value !== '') fetchUserStats(userSelect.value);
+        });
+    }
+});
