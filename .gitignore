@@ -42,6 +42,11 @@ dist/
 # Ignore local development files
 *local.yml
 *backup.*
+# But DO track the intentional backup tooling (issue #76).
+!scripts/backup.sh
+!scripts/restore.sh
+!docs/operations/backup-restore.md
+!.github/workflows/database-backup.yml
 
 # Ignore AI generated files as they can contain sensitive information
 *.chat
