@@ -45,7 +45,7 @@ function convertUTCToLocal(utcDateString) {
 // Fetch users from the API and populate the dropdown
 function fetchUsers() {
     const userSelect = document.getElementById('user-select');
-    const url = `${backendApiUrl}/api/users`;  // API endpoint for fetching users
+    const url = `${backendApiUrl}/api/v1/users`;  // API endpoint for fetching users
 
     fetch(url, {
         headers: {
@@ -95,7 +95,7 @@ function fetchUsers() {
 function fetchDevicesForUser(selectedUser) {
     const deviceSelect = document.getElementById('device-select');
     if (!deviceSelect) return;
-    const url = `${backendApiUrl}/api/users/${encodeURIComponent(selectedUser)}/devices`;
+    const url = `${backendApiUrl}/api/v1/users/${encodeURIComponent(selectedUser)}/devices`;
 
     fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
         .then(response => response.json())
@@ -161,7 +161,7 @@ function fetchGPSData(selectedUser) {
     const selectedDevice = deviceSelect ? deviceSelect.value : '';
     if (selectedDevice) params.set('device', selectedDevice);
 
-    const fullUrl = `${backendApiUrl}/api/gps-data?${params.toString()}`;
+    const fullUrl = `${backendApiUrl}/api/v1/gps-data?${params.toString()}`;
 
     fetch(fullUrl, {
         headers: {
@@ -469,7 +469,7 @@ function loadChartJs() {
 function fetchUserStats(selectedUser) {
     const panel = document.getElementById('stats-panel');
     if (!panel) return;
-    const url = `${backendApiUrl}/api/users/${encodeURIComponent(selectedUser)}/stats`;
+    const url = `${backendApiUrl}/api/v1/users/${encodeURIComponent(selectedUser)}/stats`;
 
     fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
         .then(r => r.json())
