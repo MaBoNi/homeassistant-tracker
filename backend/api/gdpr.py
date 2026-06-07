@@ -45,7 +45,7 @@ def delete_user_data(username):
     except Exception as exc:  # pragma: no cover - defensive
         s.rollback()
         logger.exception("GDPR erase failed for %s", username)
-        return jsonify({"error": "internal_error", "detail": str(exc)}), 500
+        return jsonify({"error": "internal_error"}), 500
     finally:
         s.close()
 
@@ -175,6 +175,6 @@ def set_user_consent(username):
     except Exception as exc:  # pragma: no cover - defensive
         s.rollback()
         logger.exception("GDPR consent write failed for %s", username)
-        return jsonify({"error": "internal_error", "detail": str(exc)}), 500
+        return jsonify({"error": "internal_error"}), 500
     finally:
         s.close()
