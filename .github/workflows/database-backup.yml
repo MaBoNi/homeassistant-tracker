@@ -1,0 +1,87 @@
+name: Database backup
+
+# Closes #76. Daily Postgres backup of the production database. If the
+# DATABASE_URL_PROD secret is unset (e.g. for forks or PR dry-runs), the
+# job falls back to a smoke test against a throwaway pg container so the
+# script itself is always exercised on every run.
+
+on:
+  schedule:
+    - cron: '0 2 * * *'   # 02:00 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install pg_dump + awscli
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends postgresql-client awscli gzip
+          pg_dump --version
+          aws --version
+
+      - name: Run scheduled backup (prod)
+        if: ${{ secrets.DATABASE_URL_PROD != '' }}
+        env:
+          DATABASE_URL_PROD: ${{ secrets.DATABASE_URL_PROD }}
+          S3_BUCKET: ${{ secrets.BACKUP_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.BACKUP_AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.BACKUP_AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.BACKUP_AWS_REGION }}
+        run: |
+          export DATABASE_URL="$DATABASE_URL_PROD"
+          export BACKUP_DIR="$RUNNER_TEMP/backups"
+          ./scripts/backup.sh
+
+      - name: Smoke-test backup script against throwaway pg
+        if: ${{ secrets.DATABASE_URL_PROD == '' }}
+        env:
+          DATABASE_URL_PROD: ${{ secrets.DATABASE_URL_PROD }}
+        run: |
+          set -euo pipefail
+          # Start a disposable Postgres 16 container.
+          docker run -d --rm --name pg-backup-smoke \
+            -e POSTGRES_PASSWORD=smoke \
+            -e POSTGRES_DB=ha_tracker \
+            -p 5432:5432 postgres:16
+          # Wait for it to accept connections.
+          for i in $(seq 1 30); do
+            if docker exec pg-backup-smoke pg_isready -U postgres >/dev/null 2>&1; then
+              break
+            fi
+            sleep 1
+          done
+          export DATABASE_URL="postgres://postgres:smoke@127.0.0.1:5432/ha_tracker"
+          # Seed a tiny schema so the dump is non-empty.
+          psql "$DATABASE_URL" -c "CREATE TABLE smoke (id int); INSERT INTO smoke VALUES (1),(2);"
+          export BACKUP_DIR="$RUNNER_TEMP/backups"
+          ./scripts/backup.sh
+          # Verify file exists and gunzip cleanly.
+          test -d "$BACKUP_DIR"
+          dump=$(ls -1 "$BACKUP_DIR"/*.sql.gz | head -n1)
+          test -s "$dump"
+          gunzip -t "$dump"
+          # Round-trip: drop the table, then restore.
+          psql "$DATABASE_URL" -c "DROP TABLE smoke;"
+          ./scripts/restore.sh "$dump"
+          count=$(psql -At "$DATABASE_URL" -c "SELECT COUNT(*) FROM smoke;")
+          test "$count" = "2"
+          docker rm -f pg-backup-smoke
+
+      - name: Upload backup artifact (smoke run only)
+        if: ${{ secrets.DATABASE_URL_PROD == '' }}
+        env:
+          DATABASE_URL_PROD: ${{ secrets.DATABASE_URL_PROD }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-smoke-${{ github.run_id }}
+          path: ${{ runner.temp }}/backups
+          retention-days: 7
