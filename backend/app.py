@@ -4,7 +4,7 @@ Flask application for Home Assistant Tracker.
 """
 
 import os
-from flask import Flask
+from flask import Flask, request
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -32,14 +32,41 @@ CORS(
             "origins": allowed_origins,
             "methods": ["GET", "POST", "OPTIONS"],
             "allow_headers": ["Authorization", "Content-Type"],
-            "expose_headers": ["Content-Type"],
+            "expose_headers": ["Content-Type", "Sunset", "Deprecation", "Link"],
             "supports_credentials": False,
             "max_age": 600,
         }
     },
 )
 
-app.register_blueprint(api_bp, url_prefix="/api")
+# Register the API blueprint under the versioned prefix (canonical) and the
+# legacy bare /api prefix (deprecated alias kept for one release cycle, see
+# docs/api/versioning.md).
+app.register_blueprint(api_bp, url_prefix="/api/v1")
+app.register_blueprint(api_bp, name="api_legacy", url_prefix="/api")
+
+
+# Sunset / Deprecation date for the legacy /api/* alias. ~12 months from the
+# introduction of /api/v1 (issue #78).
+LEGACY_API_SUNSET = "Sun, 06 Jun 2027 00:00:00 GMT"
+
+
+@app.after_request
+def _tag_legacy_api(response):
+    """
+    Add Sunset / Deprecation / Link headers on responses served from the
+    legacy /api/* prefix so clients can detect the deprecation in CI / logs
+    and migrate to /api/v1/*. The versioned prefix is left untouched.
+    """
+    path = request.path or ""
+    if path.startswith("/api/") and not path.startswith("/api/v1/"):
+        response.headers["Deprecation"] = "true"
+        response.headers["Sunset"] = LEGACY_API_SUNSET
+        # RFC 8288 Link header pointing to the successor resource.
+        successor = path.replace("/api/", "/api/v1/", 1)
+        response.headers["Link"] = f'<{successor}>; rel="successor-version"'
+    return response
+
 
 # Configure rate limiting to prevent API abuse
 # Default limits apply to all routes: 200 per day, 50 per hour

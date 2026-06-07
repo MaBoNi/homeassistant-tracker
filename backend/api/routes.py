@@ -150,6 +150,29 @@ def get_user_stats_route(username):
     return jsonify(stats), 200
 
 
+@api_bp.route("/version", methods=["GET"])
+def api_version():
+    """
+    Return metadata about this API version (issue #78). Allows clients to
+    detect whether they're hitting the canonical /api/v1/* prefix or the
+    deprecated bare /api/* alias.
+    """
+    is_legacy = request.path.startswith("/api/") and not request.path.startswith(
+        "/api/v1/"
+    )
+    return (
+        jsonify(
+            {
+                "api_version": "v1",
+                "current": True,
+                "deprecated_alias": is_legacy,
+                "canonical_prefix": "/api/v1",
+            }
+        ),
+        200,
+    )
+
+
 @api_bp.route("/healthz", methods=["GET"])
 def healthz():
     """
