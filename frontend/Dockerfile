@@ -1,5 +1,8 @@
 FROM nginx:alpine
 
+# Pull in Alpine security fixes that haven't reached the upstream nginx image yet
+RUN apk --no-cache upgrade
+
 # Copy custom nginx configuration for non-root operation
 COPY nginx.conf /etc/nginx/nginx.conf
 
