@@ -13,10 +13,12 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from api import api_bp
 from config.db import init_db
 from services.ha_fetcher import fetch_and_save_location
+from services.user_manager import seed_initial_admin
 
 # Initialize the database (option to drop the database on start)
 drop_db_on_start = os.getenv("DROP_DB_ON_START", "False").lower() in ("true", "1", "t")
 init_db(drop_and_recreate=drop_db_on_start)
+seed_initial_admin()
 
 app = Flask(__name__)
 

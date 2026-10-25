@@ -184,6 +184,8 @@ curl -H "Authorization: Bearer your_token_here" \
 | `HA_TOKEN` | Home Assistant long-lived token | Yes | - |
 | `HA_USERS` | Comma-separated list of users (without 'person.' prefix) | Yes | - |
 | `TRACKER_APP_TOKEN` | API authentication token | Yes | - |
+| `INITIAL_ADMIN_USERNAME` | Admin account created on first start if no users exist | No | - |
+| `INITIAL_ADMIN_PASSWORD` | Password for that admin (min 12 characters) | No | - |
 | `BACKEND_API_URL` | Backend URL for frontend | Yes | - |
 | `DROP_DB_ON_START` | Recreate database on startup (dev only) | No | `False` |
 

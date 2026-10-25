@@ -6,3 +6,4 @@ requests==2.34.2
 psycopg2-binary==2.9.12
 APScheduler==3.11.3
 Werkzeug==3.1.9
+bcrypt==5.0.0
