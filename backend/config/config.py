@@ -21,3 +21,14 @@ class Config:
 
     HA_API_URL = os.getenv("HA_API_URL", "http://your-home-assistant-url/api")
     HA_TOKEN = os.getenv("HA_TOKEN", "your_static_token")
+
+    # Signs the session cookie (issue #113). If unset, app.py generates a
+    # random key at startup, which logs everyone out on every restart.
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    # Set to False only for plain-HTTP development setups.
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True").lower() in (
+        "true",
+        "1",
+        "t",
+    )
+    SESSION_LIFETIME_HOURS = int(os.getenv("SESSION_LIFETIME_HOURS", "12"))

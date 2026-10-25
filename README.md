@@ -163,6 +163,21 @@ All endpoints except `/api/health` and `/api/healthz` require authentication via
 - `GET /api/health` - Detailed health check
   - **Response**: JSON with Flask status, database status, Home Assistant API status
 
+### Account endpoints (`/auth`)
+
+These use a signed, HTTP-only session cookie instead of the bearer token. Every `POST` must send `X-Requested-With: XMLHttpRequest` (CSRF protection). The `/api/*` endpoints don't accept the cookie yet; that comes with role-based access control (#114).
+
+- `POST /auth/login` - `{ "username", "password" }` → sets the session cookie. Failed attempts are limited to 5 per minute per IP and logged to `login_events`.
+- `POST /auth/logout` - Clears the session cookie
+- `GET /auth/me` - Current user `{ id, username, role, tracked_person }`, or 401
+- `POST /auth/register` - Admin only. `{ "username", "password", "role"?, "tracked_person"? }` → 201. Roles: `admin`, `user`, `readonly`. Passwords need at least 12 characters.
+
+```bash
+curl -c jar -H "X-Requested-With: XMLHttpRequest" -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"..."}' http://localhost:5171/auth/login
+curl -b jar http://localhost:5171/auth/me
+```
+
 ### Example API Request
 
 ```bash
@@ -186,6 +201,9 @@ curl -H "Authorization: Bearer your_token_here" \
 | `TRACKER_APP_TOKEN` | API authentication token | Yes | - |
 | `INITIAL_ADMIN_USERNAME` | Admin account created on first start if no users exist | No | - |
 | `INITIAL_ADMIN_PASSWORD` | Password for that admin (min 12 characters) | No | - |
+| `SECRET_KEY` | Signs the session cookie for `/auth/*`; if unset, a random key is used and sessions reset on restart | Recommended | random |
+| `SESSION_COOKIE_SECURE` | Send the session cookie only over HTTPS | No | `True` |
+| `SESSION_LIFETIME_HOURS` | Session cookie lifetime | No | `12` |
 | `BACKEND_API_URL` | Backend URL for frontend | Yes | - |
 | `DROP_DB_ON_START` | Recreate database on startup (dev only) | No | `False` |
 
