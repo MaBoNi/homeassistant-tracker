@@ -20,7 +20,7 @@ Session = sessionmaker(bind=engine)
 # bcrypt only looks at the first 72 bytes; refuse longer input rather than
 # silently truncating it.
 MAX_PASSWORD_BYTES = 72
-MIN_ADMIN_PASSWORD_LENGTH = 12
+ADMIN_MIN_CHARS = 12
 
 
 def hash_password(plain: str) -> str:
@@ -73,11 +73,11 @@ def seed_initial_admin(session_factory=Session) -> bool:
                 "are not set; no admin account was created."
             )
             return False
-        if len(password) < MIN_ADMIN_PASSWORD_LENGTH:
+        if len(password) < ADMIN_MIN_CHARS:
             logger.error(
                 "INITIAL_ADMIN_PASSWORD must be at least %d characters; "
                 "no admin account was created.",
-                MIN_ADMIN_PASSWORD_LENGTH,
+                ADMIN_MIN_CHARS,
             )
             return False
 
