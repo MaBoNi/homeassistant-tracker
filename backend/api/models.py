@@ -3,8 +3,63 @@
 Database models for Home Assistant Tracker.
 """
 
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean
+from datetime import datetime, timezone
+
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Float,
+    DateTime,
+    Boolean,
+    CheckConstraint,
+)
 from config.db import Base
+
+USER_ROLES = ("admin", "user", "readonly")
+
+
+class User(Base):
+    """
+    A login account (issue #112). Distinct from the Home Assistant person
+    names that key ``GPSLog.user``: ``tracked_person`` links an account to the
+    person whose data it may see, so role checks (#114) can enforce "own data".
+    """
+
+    __tablename__ = "users"
+    __table_args__ = (
+        CheckConstraint(
+            f"role IN ({', '.join(repr(r) for r in USER_ROLES)})", name="ck_users_role"
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String, unique=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="user")
+    tracked_person = Column(String, nullable=True)
+    created_at = Column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+    last_login_at = Column(DateTime, nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    def to_dict(self) -> dict:
+        """Public representation; never includes the password hash."""
+        return {
+            "id": self.id,
+            "username": self.username,
+            "role": self.role,
+            "tracked_person": self.tracked_person,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "last_login_at": (
+                self.last_login_at.isoformat() if self.last_login_at else None
+            ),
+            "is_active": bool(self.is_active),
+        }
+
+    def __repr__(self) -> str:
+        return f"<User username={self.username} role={self.role}>"
 
 
 class UserConsent(Base):
