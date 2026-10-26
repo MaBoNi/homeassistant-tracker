@@ -25,3 +25,38 @@ def session_factory():
     Base.metadata.create_all(engine)
     yield sessionmaker(bind=engine)
     engine.dispose()
+
+
+@pytest.fixture
+def auth_app(session_factory, monkeypatch):
+    """
+    Minimal Flask app with only the /auth blueprint, wired to the SQLite
+    session factory. app.py itself isn't imported: it connects to Postgres
+    and starts the scheduler at import time.
+    """
+    from flask import Flask
+
+    import api.auth
+    import api.auth_routes
+    from extensions import limiter
+
+    monkeypatch.setattr(api.auth, "Session", session_factory)
+    monkeypatch.setattr(api.auth_routes, "Session", session_factory)
+
+    app = Flask(__name__)
+    app.config.update(
+        TESTING=True,
+        SECRET_KEY="test-secret",
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=False,
+    )
+    app.register_blueprint(api.auth_routes.auth_bp, url_prefix="/auth")
+    limiter.init_app(app)
+    limiter.reset()
+    return app
+
+
+@pytest.fixture
+def client(auth_app):
+    return auth_app.test_client()

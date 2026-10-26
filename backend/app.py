@@ -3,17 +3,24 @@
 Flask application for Home Assistant Tracker.
 """
 
+import logging
 import os
+import secrets
+from datetime import timedelta
+
 from flask import Flask, request
 from flask_cors import CORS
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from api import api_bp
+from api.auth_routes import auth_bp
+from config.config import Config
 from config.db import init_db
+from extensions import limiter
 from services.ha_fetcher import fetch_and_save_location
 from services.user_manager import seed_initial_admin
+
+logger = logging.getLogger(__name__)
 
 # Initialize the database (option to drop the database on start)
 drop_db_on_start = os.getenv("DROP_DB_ON_START", "False").lower() in ("true", "1", "t")
@@ -21,6 +28,19 @@ init_db(drop_and_recreate=drop_db_on_start)
 seed_initial_admin()
 
 app = Flask(__name__)
+
+# Signed session cookie for /auth/* (issue #113)
+if not Config.SECRET_KEY:
+    logger.warning(
+        "SECRET_KEY is not set; using a random key. Sessions will not survive a restart."
+    )
+app.config.update(
+    SECRET_KEY=Config.SECRET_KEY or secrets.token_hex(32),
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+    SESSION_COOKIE_SECURE=Config.SESSION_COOKIE_SECURE,
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=Config.SESSION_LIFETIME_HOURS),
+)
 
 # Configure CORS with restricted origins for security
 # Read allowed origins from environment variable (comma-separated)
@@ -46,6 +66,7 @@ CORS(
 # docs/api/versioning.md).
 app.register_blueprint(api_bp, url_prefix="/api/v1")
 app.register_blueprint(api_bp, name="api_legacy", url_prefix="/api")
+app.register_blueprint(auth_bp, url_prefix="/auth")
 
 
 # Sunset / Deprecation date for the legacy /api/* alias. ~12 months from the
@@ -70,15 +91,8 @@ def _tag_legacy_api(response):
     return response
 
 
-# Configure rate limiting to prevent API abuse
-# Default limits apply to all routes: 200 per day, 50 per hour
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["200 per day", "50 per hour"],
-    storage_uri="memory://",  # In-memory storage (use Redis for production)
-    strategy="fixed-window",
-)
+# Configure rate limiting to prevent API abuse (limits live in extensions.py)
+limiter.init_app(app)
 
 scheduler = BackgroundScheduler()
 

@@ -7,13 +7,39 @@ import os
 import secrets
 import logging
 from functools import wraps
-from flask import request, jsonify
+from flask import request, jsonify, session
+from sqlalchemy.orm import sessionmaker
+
+from api.models import User
+from config.db import engine
 
 # Set up logging
 logger = logging.getLogger(__name__)
 
 # Fetch the TRACKER_APP_TOKEN from the environment
 BEARER_TOKEN = os.getenv("TRACKER_APP_TOKEN")
+
+Session = sessionmaker(bind=engine)
+
+
+def get_current_user():
+    """
+    Return the active ``User`` for the session cookie (issue #113), or None.
+    A cookie that points at a deleted or deactivated account is cleared.
+    """
+    user_id = session.get("user_id")
+    if user_id is None:
+        return None
+    s = Session()
+    try:
+        user = s.get(User, user_id)
+        if user is None or not user.is_active:
+            session.clear()
+            return None
+        s.expunge(user)
+        return user
+    finally:
+        s.close()
 
 
 def token_required(f):

@@ -13,6 +13,7 @@ from sqlalchemy import (
     DateTime,
     Boolean,
     CheckConstraint,
+    ForeignKey,
 )
 from config.db import Base
 
@@ -60,6 +61,23 @@ class User(Base):
 
     def __repr__(self) -> str:
         return f"<User username={self.username} role={self.role}>"
+
+
+class LoginEvent(Base):
+    """
+    Audit log of login attempts (issue #113). ``user_id`` is NULL when the
+    username did not match an account; ``username`` keeps what was submitted.
+    """
+
+    __tablename__ = "login_events"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    username = Column(String, nullable=True)
+    ts = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    ip = Column(String, nullable=True)
+    ua = Column(String, nullable=True)
+    success = Column(Boolean, nullable=False)
 
 
 class UserConsent(Base):
