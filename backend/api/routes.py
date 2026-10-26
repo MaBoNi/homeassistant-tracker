@@ -18,7 +18,7 @@ from services.db_manager import (
     get_user_stats,
 )
 from . import api_bp
-from .auth import token_required
+from .auth import require_role
 
 # Read environment variables
 HA_TOKEN = os.getenv("HA_TOKEN")
@@ -53,7 +53,7 @@ def _parse_iso_date(value, end_of_day=False):
 
 
 @api_bp.route("/gps-data", methods=["GET"])
-@token_required
+@require_role("user", "readonly", own_query="user")
 def get_gps_data():
     """
     Fetch GPS data based on user, optional time_range, and optional date range.
@@ -99,7 +99,7 @@ def get_gps_data():
 
 
 @api_bp.route("/users", methods=["GET"])
-@token_required
+@require_role()  # admin only
 def get_users():
     """
     Get a list of unique users with logged GPS data.
@@ -113,7 +113,7 @@ def get_users():
 
 
 @api_bp.route("/users/<username>/devices", methods=["GET"])
-@token_required
+@require_role("user", "readonly", own_kwarg="username")
 def get_user_devices(username):
     """
     Get the distinct device identifiers ever seen for ``username``.
@@ -126,7 +126,7 @@ def get_user_devices(username):
 
 
 @api_bp.route("/users/<username>/stats", methods=["GET"])
-@token_required
+@require_role("user", "readonly", own_kwarg="username")
 def get_user_stats_route(username):
     """
     Per-user aggregate stats over an optional date window (issue #22).

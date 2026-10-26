@@ -60,3 +60,25 @@ def auth_app(session_factory, monkeypatch):
 @pytest.fixture
 def client(auth_app):
     return auth_app.test_client()
+
+
+@pytest.fixture
+def api_app(auth_app, session_factory, monkeypatch):
+    """
+    ``auth_app`` plus the /api/v1 blueprint. GDPR routes use the SQLite
+    session; the GPS query helpers in routes.py are stubbed so these tests
+    exercise access control, not the Postgres-specific data layer.
+    """
+    import api.gdpr
+    import api.routes
+    from api import api_bp
+
+    monkeypatch.setattr(api.gdpr, "Session", session_factory)
+    monkeypatch.setattr(api.routes, "get_gps_logs", lambda user, *a, **kw: [{"user": user}])
+    monkeypatch.setattr(api.routes, "get_unique_users", lambda: ["alice_ha", "bob_ha"])
+    monkeypatch.setattr(api.routes, "get_devices_for_user", lambda u: [f"{u}-phone"])
+    monkeypatch.setattr(api.routes, "get_user_stats", lambda u, **kw: {"user": u})
+    monkeypatch.setattr(api.auth, "BEARER_TOKEN", "legacy-token")
+
+    auth_app.register_blueprint(api_bp, url_prefix="/api/v1")
+    return auth_app
