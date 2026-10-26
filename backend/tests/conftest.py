@@ -70,10 +70,12 @@ def api_app(auth_app, session_factory, monkeypatch):
     exercise access control, not the Postgres-specific data layer.
     """
     import api.gdpr
+    import api.geofence
     import api.routes
     from api import api_bp
 
     monkeypatch.setattr(api.gdpr, "Session", session_factory)
+    monkeypatch.setattr(api.geofence, "Session", session_factory)
     monkeypatch.setattr(api.routes, "get_gps_logs", lambda user, *a, **kw: [{"user": user}])
     monkeypatch.setattr(api.routes, "get_unique_users", lambda: ["alice_ha", "bob_ha"])
     monkeypatch.setattr(api.routes, "get_devices_for_user", lambda u: [f"{u}-phone"])
