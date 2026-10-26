@@ -22,7 +22,8 @@ A secure, Dockerized GPS tracker application that fetches location data from Hom
 - **Device Deduplication** – Only stores GPS data when location changes (reduces database bloat)
 
 ### Security
-- **Bearer Token Authentication** – API authentication with constant-time comparison (prevents timing attacks)
+- **User Accounts & Roles** – Log in with a username and password (bcrypt); `admin`, `user` and `readonly` roles, with non-admins limited to their own tracked person
+- **No Secrets in the Browser** – The frontend uses an HTTP-only session cookie through a same-origin nginx proxy; no API token ships in the page
 - **Rate Limiting** – 200 requests/day, 50 requests/hour to prevent API abuse
 - **CORS Protection** – Restricted to specific origins (configurable)
 - **Non-Root Containers** – All Docker containers run as non-root users for enhanced security
@@ -85,10 +86,10 @@ A secure, Dockerized GPS tracker application that fetches location data from Hom
 
     # Application Configuration
     DROP_DB_ON_START=False  # Set to True to recreate DB on startup (dev only)
-    TRACKER_APP_TOKEN=your_very_secret_static_token  # Generate a strong random token
-
-    # Frontend Configuration
-    BACKEND_API_URL=http://homeassistant-tracker-backend:5171
+    TRACKER_APP_TOKEN=your_very_secret_static_token  # Legacy API token for scripts; generate a strong random value
+    SECRET_KEY=change-me  # python -c "import secrets; print(secrets.token_hex(32))"
+    INITIAL_ADMIN_USERNAME=admin  # First admin, created on first start
+    INITIAL_ADMIN_PASSWORD=change-me-to-something-long  # 12+ characters
     ```
 
     > **Important**: Replace all placeholder values with your actual credentials. Use strong, random passwords.
@@ -99,7 +100,7 @@ A secure, Dockerized GPS tracker application that fetches location data from Hom
     ```
 
 5. **Access the application**:
-    - Frontend: http://localhost:5172
+    - Frontend: http://localhost:5172 (log in with the `INITIAL_ADMIN_*` account, then add users under **Users**)
     - Backend API: http://localhost:5171
     - Health Check: http://localhost:5171/api/health
 
@@ -144,7 +145,7 @@ HA_USERS=john_doe,jane_doe
 
 ## API Endpoints
 
-All endpoints except `/api/health`, `/api/healthz` and `/api/version` require authentication: either the session cookie from `/auth/login` or the legacy `Authorization: Bearer <TRACKER_APP_TOKEN>` header. The bearer token has full admin access and every use is logged; it will be deprecated once the frontend uses login (#115).
+All endpoints except `/api/health`, `/api/healthz` and `/api/version` require authentication: either the session cookie from `/auth/login` or the legacy `Authorization: Bearer <TRACKER_APP_TOKEN>` header. The bearer token has full admin access and every use is logged; the frontend no longer uses it, so it is only for scripts and integrations and will be deprecated.
 
 Access by role (cookie sessions):
 
@@ -208,13 +209,14 @@ curl -H "Authorization: Bearer your_token_here" \
 | `HA_API_URL` | Home Assistant API URL | Yes | - |
 | `HA_TOKEN` | Home Assistant long-lived token | Yes | - |
 | `HA_USERS` | Comma-separated list of users (without 'person.' prefix) | Yes | - |
-| `TRACKER_APP_TOKEN` | API authentication token | Yes | - |
+| `TRACKER_APP_TOKEN` | Legacy bearer token for scripts/integrations (admin access) | Yes | - |
 | `INITIAL_ADMIN_USERNAME` | Admin account created on first start if no users exist | No | - |
 | `INITIAL_ADMIN_PASSWORD` | Password for that admin (min 12 characters) | No | - |
 | `SECRET_KEY` | Signs the session cookie for `/auth/*`; if unset, a random key is used and sessions reset on restart | Recommended | random |
 | `SESSION_COOKIE_SECURE` | Send the session cookie only over HTTPS | No | `True` |
 | `SESSION_LIFETIME_HOURS` | Session cookie lifetime | No | `12` |
-| `BACKEND_API_URL` | Backend URL for frontend | Yes | - |
+| `BACKEND_UPSTREAM` | Internal URL the frontend's nginx proxies `/api` and `/auth` to | No | `http://backend:5000` |
+| `TRUSTED_PROXY_HOPS` | Reverse proxies in front of the backend whose `X-Forwarded-For` is trusted (1 = frontend nginx, 2 = also Caddy/Traefik) | No | `0` (`1` in docker-compose) |
 | `DROP_DB_ON_START` | Recreate database on startup (dev only) | No | `False` |
 
 ## Development
@@ -269,7 +271,7 @@ Common issues:
 
 - Verify backend is healthy: `curl http://localhost:5171/api/healthz`
 - Check browser console for errors
-- Verify authentication token is set in `.env`
+- If login succeeds but you're sent straight back to the login screen, the browser dropped the `Secure` session cookie: serve the app over HTTPS, or set `SESSION_COOKIE_SECURE=False` for plain-HTTP setups on a LAN
 
 ### GPS data not updating
 
@@ -286,7 +288,7 @@ Common issues:
 ## Security Considerations
 
 - **Never commit `.env` file** - Already in `.gitignore`
-- **Use strong tokens** - Generate random 32+ character tokens
+- **Use strong secrets** - Generate random 32+ character values for `SECRET_KEY` and `TRACKER_APP_TOKEN`
 - **HTTPS in production** - Deploy behind reverse proxy with TLS
 - **Regular updates** - Keep dependencies up to date with Dependabot
 - **Rate limiting active** - 200 requests/day, 50/hour per IP

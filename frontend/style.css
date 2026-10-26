@@ -105,6 +105,14 @@ table tbody tr:hover {
     flex-wrap: wrap;
 }
 .playback-controls button {
+    padding: 8px 14px;
+    background-color: #005b96;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+}
 
 /* Custom date range picker (issue #16) */
 .date-range {
@@ -141,6 +149,7 @@ table tbody tr:hover {
     border: 1px solid #003366;
     border-radius: 5px;
     color: #003366;
+}
 
 /* ---------------------------------------------------------------------------
  * Responsive layout (issue #23)
@@ -160,11 +169,6 @@ input[type="date"],
 input[type="button"],
 input[type="submit"] {
     min-height: 44px;
-}
-
-/* Allow the data table to scroll horizontally rather than break the layout. */
-#gps-data-table {
-    display: table;
 }
 
 @media (max-width: 768px) {
@@ -194,6 +198,7 @@ input[type="submit"] {
     }
 
     #user-select,
+    #device-select,
     #time-select {
         width: 100%;
         margin-left: 0;
@@ -254,9 +259,9 @@ input[type="submit"] {
     .time-info {
         font-size: 12px;
         padding: 4px;
-    }}
-
+    }
 }
+
 .date-range button:hover { background-color: #004080; }
 
 /* Stats panel (issue #22) */
@@ -294,4 +299,131 @@ input[type="submit"] {
 }
 @media (max-width: 480px) {
     .stats-grid { grid-template-columns: 1fr; }
+}
+
+/* Login, top bar and account management (issue #115) */
+[hidden] { display: none !important; }
+
+.panel {
+    margin: 20px 0;
+    padding: 15px;
+    background-color: #e6f2ff;
+    border: 1px solid #003366;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    text-align: left;
+}
+
+.login-view {
+    display: flex;
+    justify-content: center;
+    padding-top: 10vh;
+}
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    max-width: 340px;
+}
+.login-form h1 { text-align: center; margin-top: 0; }
+.login-form label { color: #003366; font-size: 14px; }
+
+.login-form input,
+.invite-form input,
+.invite-form select,
+#users-table input[type="text"],
+#users-table select {
+    padding: 8px;
+    font-size: 16px;
+    background-color: #fff;
+    border: 1px solid #003366;
+    border-radius: 5px;
+    color: #003366;
+    box-sizing: border-box;
+}
+
+.login-form button,
+.invite-form button,
+#users-table button,
+.topbar button,
+.data-actions button,
+.button-link {
+    padding: 8px 14px;
+    background-color: #005b96;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-block;
+}
+.login-form button { margin-top: 8px; font-size: 16px; }
+.login-form button:hover,
+.invite-form button:hover,
+#users-table button:hover,
+.button-link:hover { background-color: #004080; }
+.login-form button[disabled] { background-color: #99b7d0; cursor: not-allowed; }
+
+button.secondary {
+    background-color: #fff;
+    color: #005b96;
+    border: 1px solid #005b96;
+}
+button.secondary:hover { background-color: #e0e7ff; }
+button.danger { background-color: #b00020; }
+button.danger:hover { background-color: #8a0019; }
+
+.form-error { color: #b00020; min-height: 1.2em; margin: 4px 0 0; font-size: 14px; }
+.form-message { color: #005b96; min-height: 1.2em; font-size: 14px; }
+
+.topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.topbar h1 { margin: 0.5em 0; }
+.topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #003366;
+}
+.role-badge {
+    background-color: #cce7ff;
+    color: #004080;
+    border: 1px solid #005b96;
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.data-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+}
+
+#users-panel h2, #users-panel h3 { color: #005b96; margin-top: 0; }
+#users-table { margin-top: 0; }
+#users-table td { vertical-align: middle; }
+#users-table input[type="text"] { width: 100%; }
+.invite-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+}
+.invite-form h3 { width: 100%; margin-bottom: 0; }
+
+@media (max-width: 768px) {
+    .topbar { flex-direction: column; align-items: flex-start; }
+    .invite-form input, .invite-form select, .invite-form button { width: 100%; }
+    #users-panel { overflow-x: auto; }
 }

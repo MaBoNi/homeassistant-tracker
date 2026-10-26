@@ -133,11 +133,9 @@ def register():
     Returns 201 with the new user. The first admin comes from
     INITIAL_ADMIN_USERNAME / INITIAL_ADMIN_PASSWORD, not from this endpoint.
     """
-    current = get_current_user()
-    if current is None:
-        return jsonify({"message": "Authentication is required"}), 401
-    if current.role != "admin":
-        return jsonify({"message": "Admin role required"}), 403
+    current, error = _admin_or_error()
+    if error:
+        return error
 
     data = _json_body()
     error = _registration_error(data)
@@ -165,6 +163,82 @@ def register():
         return jsonify({"message": "username already exists"}), 409
     finally:
         s.close()
+
+
+def _admin_or_error():
+    """Return ``(admin_user, None)`` or ``(None, error_response)``."""
+    current = get_current_user()
+    if current is None:
+        return None, (jsonify({"message": "Authentication is required"}), 401)
+    if current.role != "admin":
+        return None, (jsonify({"message": "Admin role required"}), 403)
+    return current, None
+
+
+@auth_bp.route("/users", methods=["GET"])
+def list_users():
+    """Admin-only list of login accounts (issue #115 admin panel)."""
+    _, error = _admin_or_error()
+    if error:
+        return error
+    s = Session()
+    try:
+        return jsonify([u.to_dict() for u in s.query(User).order_by(User.username)]), 200
+    finally:
+        s.close()
+
+
+@auth_bp.route("/users/<int:user_id>", methods=["PATCH"])
+def update_user(user_id):
+    """
+    Admin-only. Body may contain ``role``, ``is_active`` and ``tracked_person``
+    (empty string or null clears it). Admins cannot demote or deactivate
+    themselves, so the last admin can't lock everyone out by accident.
+    """
+    current, error = _admin_or_error()
+    if error:
+        return error
+
+    changes, message = _user_changes(_json_body())
+    if not message and user_id == current.id and (
+        changes.get("role", "admin") != "admin" or changes.get("is_active") is False
+    ):
+        message = "You cannot demote or deactivate your own account"
+    if message:
+        return jsonify({"message": message}), 400
+
+    s = Session()
+    try:
+        user = s.get(User, user_id)
+        if user is None:
+            return jsonify({"message": "User not found"}), 404
+        for field, value in changes.items():
+            setattr(user, field, value)
+        s.commit()
+        logger.info(f"Admin {current.username} updated user {user.username}: {sorted(changes)}")
+        return jsonify(user.to_dict()), 200
+    finally:
+        s.close()
+
+
+def _user_changes(data):
+    """Validate a PATCH /users body. Returns ``(changes, error_message)``."""
+    changes = {}
+    if "role" in data:
+        if data["role"] not in USER_ROLES:
+            return {}, f"role must be one of {', '.join(USER_ROLES)}"
+        changes["role"] = data["role"]
+    if "is_active" in data:
+        if not isinstance(data["is_active"], bool):
+            return {}, "is_active must be true or false"
+        changes["is_active"] = data["is_active"]
+    if "tracked_person" in data:
+        if data["tracked_person"] is not None and not isinstance(data["tracked_person"], str):
+            return {}, "tracked_person must be a string"
+        changes["tracked_person"] = data["tracked_person"] or None
+    if not changes:
+        return {}, "Nothing to update"
+    return changes, None
 
 
 def _registration_error(data):

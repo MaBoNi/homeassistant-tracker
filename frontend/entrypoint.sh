@@ -1,17 +1,12 @@
 #!/bin/sh
+set -e
 
-# Replace the placeholder in script.js with the actual environment variable
-#sed -i 's|__TRACKER_APP_TOKEN__|'${TRACKER_APP_TOKEN}'|g' /usr/share/nginx/html/script.js
+# Backend that nginx proxies /api/ and /auth/ to (issue #115). The browser
+# never sees this address, and nothing secret is written into the page.
+BACKEND_UPSTREAM="${BACKEND_UPSTREAM:-http://backend:5000}"
 
-# Replace placeholders in the script.js with the actual environment variables
-sed -i "s|__TRACKER_APP_TOKEN__|$TRACKER_APP_TOKEN|g" /usr/share/nginx/html/script.js
-sed -i "s|__BACKEND_API_URL__|$BACKEND_API_URL|g" /usr/share/nginx/html/script.js
-
-
+# /etc/nginx is root-owned and we run as nginx, so render the config to /tmp.
+sed "s|__BACKEND_UPSTREAM__|${BACKEND_UPSTREAM}|g" /etc/nginx/nginx.conf > /tmp/nginx.conf
 
 # Start Nginx
-nginx -g 'daemon off;'
-
-
-
-
+exec nginx -c /tmp/nginx.conf -g 'daemon off;'

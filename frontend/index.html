@@ -9,8 +9,61 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />  <!-- Leaflet CSS -->
 </head>
 <body>
-    <div class="container">
-        <h1>Home Assistant History Data Tracker</h1>
+    <!-- Login screen (issue #115), shown when GET /auth/me returns 401 -->
+    <section id="login-view" class="login-view" hidden>
+        <form id="login-form" class="panel login-form">
+            <h1>GPS Tracker</h1>
+            <label for="login-username">Username</label>
+            <input type="text" id="login-username" autocomplete="username" required>
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" autocomplete="current-password" required>
+            <button type="submit" id="login-submit">Log in</button>
+            <p id="login-error" class="form-error" role="alert"></p>
+        </form>
+    </section>
+
+    <div class="container" id="app-view" hidden>
+        <header class="topbar">
+            <h1>Home Assistant History Data Tracker</h1>
+            <div class="topbar-user">
+                <span id="current-username"></span>
+                <span id="current-role" class="role-badge"></span>
+                <button type="button" id="users-toggle" class="secondary" hidden>Users</button>
+                <button type="button" id="logout-btn" class="secondary">Log out</button>
+            </div>
+        </header>
+
+        <!-- Admin-only account management (issue #115) -->
+        <section id="users-panel" class="panel" hidden>
+            <h2>Users</h2>
+            <table id="users-table">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Role</th>
+                        <th>Tracked person</th>
+                        <th>Active</th>
+                        <th>Last login</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+            <form id="invite-form" class="invite-form">
+                <h3>Add user</h3>
+                <input type="text" id="invite-username" placeholder="Username" required pattern="[A-Za-z0-9_.\-]{1,64}">
+                <input type="password" id="invite-password" placeholder="Password (12+ characters)" required minlength="12" autocomplete="new-password">
+                <select id="invite-role">
+                    <option value="user">user</option>
+                    <option value="readonly">readonly</option>
+                    <option value="admin">admin</option>
+                </select>
+                <input type="text" id="invite-person" placeholder="Tracked person" list="tracked-people">
+                <button type="submit">Add</button>
+            </form>
+            <datalist id="tracked-people"></datalist>
+            <p id="users-message" class="form-message" role="status"></p>
+        </section>
 
         <div class="selectors">
             <label for="user-select">Select User:</label>
@@ -82,6 +135,13 @@
                 </div>
             </div>
             <canvas id="stats-chart" height="120"></canvas>
+        </div>
+
+        <!-- Export / delete for the selected person (GDPR, issue #75). Hidden for readonly. -->
+        <div id="data-actions" class="data-actions" hidden>
+            <a id="export-json" class="button-link" href="#" download>Export JSON</a>
+            <a id="export-csv" class="button-link" href="#" download>Export CSV</a>
+            <button type="button" id="delete-data" class="danger">Delete all data…</button>
         </div>
 
         <div id="error"></div>  <!-- Error message will appear here -->

@@ -17,6 +17,8 @@ services:
       - SECRET_KEY=${SECRET_KEY:-}
       - SESSION_COOKIE_SECURE=${SESSION_COOKIE_SECURE:-True}
       - SESSION_LIFETIME_HOURS=${SESSION_LIFETIME_HOURS:-12}
+      # The frontend nginx proxy is one hop in front of the backend
+      - TRUSTED_PROXY_HOPS=${TRUSTED_PROXY_HOPS:-1}
       - CORS_ORIGINS=${CORS_ORIGINS}
     volumes:
       - ./backend:/app
@@ -37,8 +39,8 @@ services:
     ports:
       - "5172:8080"  # Frontend app port (non-root nginx runs on 8080)
     environment:
-      - TRACKER_APP_TOKEN=${TRACKER_APP_TOKEN}
-      - BACKEND_API_URL=${BACKEND_API_URL}
+      # Internal address nginx proxies /api and /auth to (not exposed to browsers)
+      - BACKEND_UPSTREAM=${BACKEND_UPSTREAM:-http://backend:5000}
     depends_on:
       backend:
         condition: service_healthy
