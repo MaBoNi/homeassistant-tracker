@@ -7,7 +7,7 @@ function updateLastUpdatedTime() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    fetchUsers();  // Fetch and populate users when the page loads
+    boot();  // Check the session, then show the login screen or the app
 
     // Function to update local time
     function updateLocalTime() {
@@ -28,13 +28,26 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
 }).addTo(map);
 
-// ⚠️ SECURITY NOTE: The token and API URL are replaced by the Docker entrypoint script
-// This means the authentication token is visible in the browser (view source, dev tools)
-// Anyone with frontend access effectively has API access. This is a known limitation.
-// See SECURITY.md for mitigation strategies and recommended solutions.
-// Current mitigations: Rate limiting (30 req/min), CORS restrictions, access logging
-const token = '__TRACKER_APP_TOKEN__';  // Placeholder for the token
-const backendApiUrl = '__BACKEND_API_URL__';  // Placeholder for the backend API URL
+// The page and the API share an origin: nginx proxies /api and /auth to the
+// backend (issue #115), and the browser authenticates with the HTTP-only
+// session cookie from /auth/login. No token or backend address ships here.
+
+// Wrapper around fetch for our API: sends the session cookie, adds the CSRF
+// header the backend requires on state-changing requests, and drops back to
+// the login screen when the session has expired.
+function apiFetch(path, options = {}) {
+    const headers = { 'X-Requested-With': 'XMLHttpRequest', ...(options.headers || {}) };
+    if (options.body !== undefined && !(options.body instanceof FormData)) {
+        headers['Content-Type'] = 'application/json';
+    }
+    return fetch(path, { ...options, headers, credentials: 'same-origin' }).then(response => {
+        if (response.status === 401 && !path.startsWith('/auth/')) {
+            showLogin('Your session has expired. Please log in again.');
+            throw new Error('Not authenticated');
+        }
+        return response;
+    });
+}
 
 // Helper function to convert ISO timestamp to local time, assuming the API is sending UTC timestamps
 function convertUTCToLocal(utcDateString) {
@@ -42,22 +55,46 @@ function convertUTCToLocal(utcDateString) {
     return utcDate.toLocaleString([], { hour12: false });  // Convert to 24-hour local time
 }
 
-// Fetch users from the API and populate the dropdown
-function fetchUsers() {
+// Populate the user dropdown. Admins pick from everyone with GPS data;
+// other roles only ever see their own tracked person (issue #115), so the
+// selector is locked to that one entry.
+function fetchUsers(me) {
     const userSelect = document.getElementById('user-select');
-    const url = `${backendApiUrl}/api/v1/users`;  // API endpoint for fetching users
 
-    fetch(url, {
-        headers: {
-            'Authorization': `Bearer ${token}`,  // Using token from the environment
+    // Add event listener to fetch data when a valid user is selected
+    userSelect.addEventListener('change', function() {
+        if (userSelect.value !== '') {
+            fetchDevicesForUser(userSelect.value);
+            fetchGPSData(userSelect.value);  // Fetch data for the selected user
+            updateLastUpdatedTime();  // Update the "Last updated at" time when user changes
         }
-    })
+    });
+
+    if (me.role !== 'admin') {
+        if (!me.tracked_person) {
+            document.getElementById('error').textContent =
+                'Your account is not linked to a tracked person yet. Ask an admin to set one.';
+            userSelect.disabled = true;
+            return;
+        }
+        const option = document.createElement('option');
+        option.value = me.tracked_person;
+        option.textContent = me.tracked_person;
+        userSelect.appendChild(option);
+        userSelect.value = me.tracked_person;
+        userSelect.disabled = true;
+        userSelect.dispatchEvent(new Event('change'));
+        return;
+    }
+
+    apiFetch('/api/v1/users')
     .then(response => response.json())
     .then(users => {
-        if (!users || users.length === 0) {
+        if (!Array.isArray(users) || users.length === 0) {
             document.getElementById('error').textContent = 'No users found!';
             return;
         }
+        fillTrackedPeople(users);
 
         // Add a placeholder option to prompt the user to select someone
         const placeholderOption = document.createElement('option');
@@ -79,15 +116,6 @@ function fetchUsers() {
         console.error('Error fetching users:', error);
         document.getElementById('error').textContent = 'Error fetching users';
     });
-
-    // Add event listener to fetch data when a valid user is selected
-    userSelect.addEventListener('change', function() {
-        if (userSelect.value !== '') {
-            fetchDevicesForUser(userSelect.value);
-            fetchGPSData(userSelect.value);  // Fetch data for the selected user
-            updateLastUpdatedTime();  // Update the "Last updated at" time when user changes
-        }
-    });
 }
 
 // Populate the device dropdown for the current user (issue #20). Always
@@ -95,9 +123,7 @@ function fetchUsers() {
 function fetchDevicesForUser(selectedUser) {
     const deviceSelect = document.getElementById('device-select');
     if (!deviceSelect) return;
-    const url = `${backendApiUrl}/api/v1/users/${encodeURIComponent(selectedUser)}/devices`;
-
-    fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+    apiFetch(`/api/v1/users/${encodeURIComponent(selectedUser)}/devices`)
         .then(response => response.json())
         .then(devices => {
             // Reset to just the "All devices" sentinel before re-populating.
@@ -161,13 +187,7 @@ function fetchGPSData(selectedUser) {
     const selectedDevice = deviceSelect ? deviceSelect.value : '';
     if (selectedDevice) params.set('device', selectedDevice);
 
-    const fullUrl = `${backendApiUrl}/api/v1/gps-data?${params.toString()}`;
-
-    fetch(fullUrl, {
-        headers: {
-            'Authorization': `Bearer ${token}`,  // Using token from the environment
-        }
-    })
+    return apiFetch(`/api/v1/gps-data?${params.toString()}`)
     .then(response => response.json())
     .then(data => {
         const tableBody = document.querySelector('#gps-data-table tbody');
@@ -199,14 +219,12 @@ function fetchGPSData(selectedUser) {
             const localTimestamp = convertUTCToLocal(item.timestamp);  // Convert to local time
 
             const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${item.user}</td>
-                <td>${item.device}</td>
-                <td>${item.latitude}</td>
-                <td>${item.longitude}</td>
-                <td>${localTimestamp}</td>
-                <td>${item.accuracy || 'N/A'}</td>
-            `;
+            [item.user, item.device, item.latitude, item.longitude, localTimestamp, item.accuracy || 'N/A']
+                .forEach(value => {
+                    const cell = document.createElement('td');
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                });
             tableBody.appendChild(row);
 
             // Add coordinates to the array for the map
@@ -469,9 +487,7 @@ function loadChartJs() {
 function fetchUserStats(selectedUser) {
     const panel = document.getElementById('stats-panel');
     if (!panel) return;
-    const url = `${backendApiUrl}/api/v1/users/${encodeURIComponent(selectedUser)}/stats`;
-
-    fetch(url, { headers: { 'Authorization': `Bearer ${token}` } })
+    apiFetch(`/api/v1/users/${encodeURIComponent(selectedUser)}/stats`)
         .then(r => r.json())
         .then(stats => {
             panel.hidden = false;
@@ -531,4 +547,246 @@ document.addEventListener('DOMContentLoaded', function() {
             if (userSelect.value !== '') fetchUserStats(userSelect.value);
         });
     }
+});
+// ----------------------------------------------------------------------------
+// Login, session and role-aware UI (issue #115)
+//
+// boot() asks /auth/me who is logged in. A 401 shows the login form; anything
+// else shows the app, with the user selector, export/delete buttons and the
+// admin Users panel shown or hidden by role. The backend enforces the same
+// rules (issue #114); hiding controls here is only about not offering actions
+// that would be refused.
+// ----------------------------------------------------------------------------
+
+let currentUser = null;
+
+function boot() {
+    apiFetch('/auth/me')
+        .then(response => (response.ok ? response.json() : null))
+        .then(me => (me ? showApp(me) : showLogin()))
+        .catch(error => {
+            console.error('Error checking session:', error);
+            showLogin('Could not reach the server.');
+        });
+}
+
+function showLogin(message = '') {
+    currentUser = null;
+    document.getElementById('app-view').hidden = true;
+    document.getElementById('login-view').hidden = false;
+    document.getElementById('login-error').textContent = message;
+    document.getElementById('login-username').focus();
+}
+
+function showApp(me) {
+    currentUser = me;
+    document.getElementById('login-view').hidden = true;
+    document.getElementById('app-view').hidden = false;
+    map.invalidateSize();  // the map was laid out while hidden
+
+    document.getElementById('current-username').textContent = me.username;
+    document.getElementById('current-role').textContent = me.role;
+    document.getElementById('users-toggle').hidden = me.role !== 'admin';
+
+    fetchUsers(me);
+}
+
+document.getElementById('login-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const submit = document.getElementById('login-submit');
+    const errorEl = document.getElementById('login-error');
+    submit.disabled = true;
+    errorEl.textContent = '';
+
+    apiFetch('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+            username: document.getElementById('login-username').value,
+            password: document.getElementById('login-password').value,
+        }),
+    })
+        .then(response => {
+            if (response.status === 429) throw new Error('Too many failed attempts. Wait a minute and try again.');
+            if (!response.ok) throw new Error('Invalid username or password.');
+            // Confirm the browser kept the cookie: a Secure cookie is dropped
+            // on plain HTTP, which would otherwise look like a silent failure.
+            return apiFetch('/auth/me');
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Logged in, but the browser rejected the session cookie. '
+                    + 'Serve the app over HTTPS or set SESSION_COOKIE_SECURE=False for local HTTP.');
+            }
+            // Reload so the page starts clean for this account.
+            window.location.reload();
+        })
+        .catch(error => {
+            errorEl.textContent = error.message;
+            document.getElementById('login-password').value = '';
+        })
+        .finally(() => { submit.disabled = false; });
+});
+
+document.getElementById('logout-btn').addEventListener('click', function() {
+    apiFetch('/auth/logout', { method: 'POST' }).finally(() => window.location.reload());
+});
+
+// Export / delete for the selected person. Readonly accounts can do neither,
+// so the buttons stay hidden for them.
+function updateDataActions(person) {
+    const actions = document.getElementById('data-actions');
+    if (!person || !currentUser || currentUser.role === 'readonly') {
+        actions.hidden = true;
+        return;
+    }
+    const base = `/api/v1/users/${encodeURIComponent(person)}/export`;
+    document.getElementById('export-json').href = `${base}?format=json`;
+    document.getElementById('export-csv').href = `${base}?format=csv`;
+    actions.hidden = false;
+}
+
+document.getElementById('user-select').addEventListener('change', function() {
+    updateDataActions(this.value);
+});
+
+document.getElementById('delete-data').addEventListener('click', function() {
+    const person = document.getElementById('user-select').value;
+    if (!person) return;
+    if (!window.confirm(`Permanently delete all GPS history for "${person}"? This cannot be undone.`)) return;
+    apiFetch(`/api/v1/users/${encodeURIComponent(person)}/data`, { method: 'DELETE' })
+        .then(response => response.json().then(body => ({ ok: response.ok, body })))
+        .then(({ ok, body }) => {
+            if (!ok) throw new Error(body.message || 'Delete failed');
+            // Refresh first: an empty result rewrites the message line.
+            return fetchGPSData(person).then(() => {
+                document.getElementById('error').textContent =
+                    `Deleted ${body.deleted_rows} GPS log entries for ${person}.`;
+            });
+        })
+        .catch(error => {
+            document.getElementById('error').textContent = error.message;
+        });
+});
+
+// ----------------------------------------------------------------------------
+// Admin Users panel: list accounts, change role / tracked person / active,
+// and add new accounts.
+// ----------------------------------------------------------------------------
+
+function fillTrackedPeople(people) {
+    const list = document.getElementById('tracked-people');
+    list.innerHTML = '';
+    people.forEach(person => {
+        const option = document.createElement('option');
+        option.value = person;
+        list.appendChild(option);
+    });
+}
+
+function setUsersMessage(text, isError = false) {
+    const el = document.getElementById('users-message');
+    el.textContent = text;
+    el.classList.toggle('form-error', isError);
+}
+
+document.getElementById('users-toggle').addEventListener('click', function() {
+    const panel = document.getElementById('users-panel');
+    panel.hidden = !panel.hidden;
+    if (!panel.hidden) loadUsersTable();
+});
+
+function loadUsersTable() {
+    apiFetch('/auth/users')
+        .then(response => response.json())
+        .then(users => {
+            const tbody = document.querySelector('#users-table tbody');
+            tbody.innerHTML = '';
+            users.forEach(user => tbody.appendChild(userRow(user)));
+        })
+        .catch(error => setUsersMessage(`Could not load users: ${error.message}`, true));
+}
+
+function userRow(user) {
+    const row = document.createElement('tr');
+    const isSelf = currentUser && user.id === currentUser.id;
+
+    const nameCell = document.createElement('td');
+    nameCell.textContent = user.username;
+
+    const roleSelect = document.createElement('select');
+    ['admin', 'user', 'readonly'].forEach(role => {
+        const option = document.createElement('option');
+        option.value = role;
+        option.textContent = role;
+        roleSelect.appendChild(option);
+    });
+    roleSelect.value = user.role;
+    roleSelect.disabled = isSelf;  // admins can't demote themselves
+    roleSelect.setAttribute('aria-label', `Role for ${user.username}`);
+
+    const personInput = document.createElement('input');
+    personInput.type = 'text';
+    personInput.value = user.tracked_person || '';
+    personInput.setAttribute('list', 'tracked-people');
+    personInput.setAttribute('aria-label', `Tracked person for ${user.username}`);
+
+    const activeInput = document.createElement('input');
+    activeInput.type = 'checkbox';
+    activeInput.checked = user.is_active;
+    activeInput.disabled = isSelf;  // or deactivate themselves
+    activeInput.setAttribute('aria-label', `${user.username} active`);
+
+    const lastLogin = document.createElement('td');
+    lastLogin.textContent = user.last_login_at ? convertUTCToLocal(user.last_login_at) : 'never';
+
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.textContent = 'Save';
+    save.addEventListener('click', () => {
+        const body = { tracked_person: personInput.value.trim() };
+        if (!isSelf) {
+            body.role = roleSelect.value;
+            body.is_active = activeInput.checked;
+        }
+        apiFetch(`/auth/users/${user.id}`, { method: 'PATCH', body: JSON.stringify(body) })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (!ok) throw new Error(data.message || 'Update failed');
+                setUsersMessage(`Saved ${data.username}.`);
+                loadUsersTable();
+            })
+            .catch(error => setUsersMessage(error.message, true));
+    });
+
+    [nameCell, wrapCell(roleSelect), wrapCell(personInput), wrapCell(activeInput), lastLogin, wrapCell(save)]
+        .forEach(cell => row.appendChild(cell));
+    return row;
+}
+
+function wrapCell(element) {
+    const cell = document.createElement('td');
+    cell.appendChild(element);
+    return cell;
+}
+
+document.getElementById('invite-form').addEventListener('submit', function(event) {
+    event.preventDefault();
+    const form = this;
+    apiFetch('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+            username: document.getElementById('invite-username').value.trim(),
+            password: document.getElementById('invite-password').value,
+            role: document.getElementById('invite-role').value,
+            tracked_person: document.getElementById('invite-person').value.trim() || null,
+        }),
+    })
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            if (!ok) throw new Error(data.message || 'Could not add user');
+            setUsersMessage(`Added ${data.username} (${data.role}).`);
+            form.reset();
+            loadUsersTable();
+        })
+        .catch(error => setUsersMessage(error.message, true));
 });

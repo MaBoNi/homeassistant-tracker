@@ -32,3 +32,7 @@ class Config:
         "t",
     )
     SESSION_LIFETIME_HOURS = int(os.getenv("SESSION_LIFETIME_HOURS", "12"))
+
+    # Number of reverse proxies in front of the backend whose X-Forwarded-*
+    # headers are trusted (1 for the bundled nginx frontend proxy).
+    TRUSTED_PROXY_HOPS = int(os.getenv("TRUSTED_PROXY_HOPS", "0"))

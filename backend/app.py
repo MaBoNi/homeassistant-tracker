@@ -10,6 +10,7 @@ from datetime import timedelta
 
 from flask import Flask, request
 from flask_cors import CORS
+from werkzeug.middleware.proxy_fix import ProxyFix
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from api import api_bp
@@ -28,6 +29,12 @@ init_db(drop_and_recreate=drop_db_on_start)
 seed_initial_admin()
 
 app = Flask(__name__)
+
+# Behind the frontend's nginx proxy (issue #115) the client IP arrives in
+# X-Forwarded-For. Only trust it when TRUSTED_PROXY_HOPS says a proxy is in
+# front, or clients could spoof it to dodge per-IP rate limits.
+if Config.TRUSTED_PROXY_HOPS > 0:
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=Config.TRUSTED_PROXY_HOPS)
 
 # Signed session cookie for /auth/* (issue #113)
 if not Config.SECRET_KEY:
@@ -67,7 +74,7 @@ CORS(
             "methods": ["GET", "POST", "DELETE", "OPTIONS"],
             "expose_headers": ["Content-Type", "Sunset", "Deprecation", "Link"],
         },
-        r"/auth/*": {**_cors_common, "methods": ["GET", "POST", "OPTIONS"]},
+        r"/auth/*": {**_cors_common, "methods": ["GET", "POST", "PATCH", "OPTIONS"]},
     },
 )
 

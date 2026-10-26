@@ -193,3 +193,59 @@ class TestRegister:
     def test_requires_xhr_header(self, client, users):
         login(client, "admin", ADMIN_PW)
         assert client.post("/auth/register", json=self.body()).status_code == 403
+
+
+class TestUserAdmin:
+    def test_list_requires_admin(self, client, users):
+        assert client.get("/auth/users").status_code == 401
+        login(client, "alice", USER_PW)
+        assert client.get("/auth/users").status_code == 403
+
+    def test_list_users(self, client, users):
+        login(client, "admin", ADMIN_PW)
+        r = client.get("/auth/users")
+        assert r.status_code == 200
+        body = r.get_json()
+        assert [u["username"] for u in body] == ["admin", "alice", "ghost"]
+        assert all("password_hash" not in u for u in body)
+
+    def test_update_role_person_and_active(self, client, users, auth_app):
+        login(client, "admin", ADMIN_PW)
+        r = client.patch(
+            "/auth/users/2",
+            json={"role": "readonly", "tracked_person": "alice2", "is_active": True},
+            headers=XHR,
+        )
+        assert r.status_code == 200
+        assert r.get_json()["role"] == "readonly"
+        assert r.get_json()["tracked_person"] == "alice2"
+
+        r = client.patch("/auth/users/2", json={"tracked_person": ""}, headers=XHR)
+        assert r.get_json()["tracked_person"] is None
+
+        assert client.patch("/auth/users/2", json={"is_active": False}, headers=XHR).status_code == 200
+        assert login(auth_app.test_client(), "alice", USER_PW).status_code == 401
+
+    def test_update_requires_admin_and_xhr(self, client, users):
+        login(client, "alice", USER_PW)
+        assert client.patch("/auth/users/2", json={"role": "admin"}, headers=XHR).status_code == 403
+        login(client, "admin", ADMIN_PW)
+        assert client.patch("/auth/users/2", json={"role": "readonly"}).status_code == 403
+
+    def test_cannot_demote_or_deactivate_self(self, client, users):
+        login(client, "admin", ADMIN_PW)
+        assert client.patch("/auth/users/1", json={"role": "user"}, headers=XHR).status_code == 400
+        assert client.patch("/auth/users/1", json={"is_active": False}, headers=XHR).status_code == 400
+        assert client.patch("/auth/users/1", json={"tracked_person": "me"}, headers=XHR).status_code == 200
+
+    @pytest.mark.parametrize(
+        "body",
+        [{}, {"role": "root"}, {"is_active": "yes"}, {"tracked_person": 5}],
+    )
+    def test_update_validation(self, client, users, body):
+        login(client, "admin", ADMIN_PW)
+        assert client.patch("/auth/users/2", json=body, headers=XHR).status_code == 400
+
+    def test_update_unknown_user(self, client, users):
+        login(client, "admin", ADMIN_PW)
+        assert client.patch("/auth/users/999", json={"role": "user"}, headers=XHR).status_code == 404

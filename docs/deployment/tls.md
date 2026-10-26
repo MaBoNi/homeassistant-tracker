@@ -89,43 +89,30 @@ tracker.example.com {
         -Server
     }
 
-    # API traffic → backend container, port 5000 (internal).
-    handle_path /api/* {
-        reverse_proxy backend:5000
-    }
-
-    # Everything else → frontend nginx container, port 8080 (internal).
+    # Everything → frontend nginx container, port 8080 (internal). It serves
+    # the page and proxies /api/* and /auth/* to the backend itself, so the
+    # session cookie stays first-party.
     handle {
         reverse_proxy frontend:8080
     }
 }
 ```
 
-`handle_path` strips the `/api` prefix before forwarding; if your backend
-already expects the `/api` prefix on its routes (it does — see
-`backend/api/routes.py`), use `handle` instead and forward the full path:
-
-```caddy
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-```
-
-Pick whichever matches your backend's expectations and stay consistent.
-
 ---
 
-## 4. Update `CORS_ORIGINS` and `BACKEND_API_URL`
-
-In `.env` for production:
+## 4. Update `.env` for production
 
 ```
 CORS_ORIGINS=https://tracker.example.com
-BACKEND_API_URL=https://tracker.example.com/api
+SESSION_COOKIE_SECURE=True
+# Caddy → frontend nginx → backend: two proxies whose X-Forwarded-For is trusted
+TRUSTED_PROXY_HOPS=2
+SECRET_KEY=<64 random hex chars>
 ```
 
-The frontend now talks to the API over the same origin, which sidesteps
-most CORS issues entirely.
+The browser only ever talks to `https://tracker.example.com`; the frontend's
+nginx forwards `/api/*` and `/auth/*` to the backend, so there's no
+cross-origin traffic and no API token in the page.
 
 ---
 
@@ -154,7 +141,8 @@ Before flipping DNS:
 - [ ] Backend and frontend `ports:` removed from public mapping (or bound
       to `127.0.0.1` only).
 - [ ] `.env` contains strong `POSTGRES_PASSWORD`, `TRACKER_APP_TOKEN`,
-      and `HA_TOKEN` values — none of them committed.
+      `SECRET_KEY`, `INITIAL_ADMIN_PASSWORD` and `HA_TOKEN` values — none of
+      them committed.
 - [ ] `CORS_ORIGINS` set to the exact production origin (no `*`).
 - [ ] `DROP_DB_ON_START` unset or `false`.
 - [ ] Postgres volume on persistent storage with a backup strategy
