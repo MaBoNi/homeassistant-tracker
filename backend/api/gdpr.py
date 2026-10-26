@@ -4,7 +4,9 @@ GDPR compliance endpoints (issue #75).
 
 Provides per-user data export, deletion ("right to be forgotten"), and
 consent read/write under the canonical ``/api/v1/users/<username>/...``
-prefix. All endpoints require the existing bearer-token auth.
+prefix. Access is checked by ``@require_role`` (issue #114): admins and the
+legacy bearer token may act on anyone; ``user`` accounts only on their own
+``tracked_person``; ``readonly`` accounts may only read.
 """
 
 import csv
@@ -18,7 +20,7 @@ from sqlalchemy.orm import sessionmaker
 from api.models import GPSLog, UserConsent
 from config.db import engine
 from . import api_bp
-from .auth import token_required
+from .auth import require_role
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +28,7 @@ Session = sessionmaker(bind=engine)
 
 
 @api_bp.route("/users/<username>/data", methods=["DELETE"])
-@token_required
+@require_role("user", own_kwarg="username")
 def delete_user_data(username):
     """
     Delete all GPSLog rows for ``username`` (GDPR Art. 17, right to erasure).
@@ -65,7 +67,7 @@ def _rows_for_user(username):
 
 
 @api_bp.route("/users/<username>/export", methods=["GET"])
-@token_required
+@require_role("user", own_kwarg="username")
 def export_user_data(username):
     """
     Export all GPSLog rows for ``username`` (GDPR Art. 20, data portability).
@@ -115,7 +117,7 @@ def export_user_data(username):
 
 
 @api_bp.route("/users/<username>/consent", methods=["GET"])
-@token_required
+@require_role("user", "readonly", own_kwarg="username")
 def get_user_consent(username):
     """
     Read the consent record for ``username``. Returns a default
@@ -143,7 +145,7 @@ def get_user_consent(username):
 
 
 @api_bp.route("/users/<username>/consent", methods=["POST"])
-@token_required
+@require_role("user", own_kwarg="username")
 def set_user_consent(username):
     """
     Record or withdraw consent for ``username``.

@@ -45,19 +45,29 @@ app.config.update(
 # Configure CORS with restricted origins for security
 # Read allowed origins from environment variable (comma-separated)
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5172,http://127.0.0.1:5172")
-allowed_origins = [origin.strip() for origin in cors_origins.split(",")]
+allowed_origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
+# Credentialed CORS must never be combined with a wildcard origin.
+if "*" in allowed_origins:
+    logger.error("CORS_ORIGINS must list explicit origins; ignoring '*'.")
+    allowed_origins = [origin for origin in allowed_origins if origin != "*"]
 
+# supports_credentials lets a cross-origin frontend send the session cookie
+# (issue #114). Same-origin setups behind the nginx proxy don't need CORS.
+_cors_common = {
+    "origins": allowed_origins,
+    "allow_headers": ["Authorization", "Content-Type", "X-Requested-With"],
+    "supports_credentials": True,
+    "max_age": 600,
+}
 CORS(
     app,
     resources={
         r"/api/*": {
-            "origins": allowed_origins,
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Authorization", "Content-Type"],
+            **_cors_common,
+            "methods": ["GET", "POST", "DELETE", "OPTIONS"],
             "expose_headers": ["Content-Type", "Sunset", "Deprecation", "Link"],
-            "supports_credentials": False,
-            "max_age": 600,
-        }
+        },
+        r"/auth/*": {**_cors_common, "methods": ["GET", "POST", "OPTIONS"]},
     },
 )
 

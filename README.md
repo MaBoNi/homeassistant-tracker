@@ -144,7 +144,17 @@ HA_USERS=john_doe,jane_doe
 
 ## API Endpoints
 
-All endpoints except `/api/health` and `/api/healthz` require authentication via `Authorization: Bearer <TRACKER_APP_TOKEN>` header.
+All endpoints except `/api/health`, `/api/healthz` and `/api/version` require authentication: either the session cookie from `/auth/login` or the legacy `Authorization: Bearer <TRACKER_APP_TOKEN>` header. The bearer token has full admin access and every use is logged; it will be deprecated once the frontend uses login (#115).
+
+Access by role (cookie sessions):
+
+| Endpoint | `admin` | `user` | `readonly` |
+|---|---|---|---|
+| `GET /api/v1/users` | ✓ | – | – |
+| `GET /api/v1/gps-data?user=…`, `GET /users/<u>/devices`, `GET /users/<u>/stats`, `GET /users/<u>/consent` | any user | own only | own only |
+| `POST /users/<u>/consent`, `GET /users/<u>/export`, `DELETE /users/<u>/data` | any user | own only | – |
+
+"Own" means `<u>` equals the account's `tracked_person` (set when an admin registers the account). Cookie-authenticated `POST`/`DELETE` requests must send `X-Requested-With: XMLHttpRequest`.
 
 ### Endpoints
 
@@ -165,7 +175,7 @@ All endpoints except `/api/health` and `/api/healthz` require authentication via
 
 ### Account endpoints (`/auth`)
 
-These use a signed, HTTP-only session cookie instead of the bearer token. Every `POST` must send `X-Requested-With: XMLHttpRequest` (CSRF protection). The `/api/*` endpoints don't accept the cookie yet; that comes with role-based access control (#114).
+These use a signed, HTTP-only session cookie instead of the bearer token. Every `POST` must send `X-Requested-With: XMLHttpRequest` (CSRF protection). The same cookie authenticates `/api/*` (see the role table above).
 
 - `POST /auth/login` - `{ "username", "password" }` → sets the session cookie. Failed attempts are limited to 5 per minute per IP and logged to `login_events`.
 - `POST /auth/logout` - Clears the session cookie
