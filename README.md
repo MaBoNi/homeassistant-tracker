@@ -168,6 +168,11 @@ Access by role (cookie sessions):
 - `GET /api/users` - Get list of all tracked users
   - **Response**: JSON array of usernames
 
+- `GET|POST /api/v1/users/<u>/zones`, `PATCH|DELETE /api/v1/users/<u>/zones/<id>` - Circular geofence zones for a tracked person
+  - **Create body**: `{ "name", "center_lat", "center_lon", "radius_m" (10–50000), "active"? }`; max 50 zones per person
+  - **PATCH body**: `{ "name"?, "active"? }`
+  - Readers (incl. `readonly`) can list; `user` (own) and `admin` can change
+
 - `GET /api/healthz` - Simple health check (for Docker)
   - **Response**: `{"status": "healthy"}`
 

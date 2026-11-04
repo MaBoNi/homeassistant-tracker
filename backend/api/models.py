@@ -154,3 +154,47 @@ class GPSLog(Base):
         return (
             f"<GPSLog user={self.user} device={self.device} timestamp={self.timestamp}>"
         )
+
+
+GEOMETRY_TYPES = ("circle",)
+
+
+class GeofenceZone(Base):
+    """
+    A geofence for one tracked Home Assistant person (issue #116).
+    ``owner_user`` matches ``GPSLog.user``. Only circles in v1; a ``geometry``
+    JSON column is reserved for polygons later.
+    """
+
+    __tablename__ = "geofence_zones"
+    __table_args__ = (
+        CheckConstraint(
+            f"geometry_type IN ({', '.join(repr(g) for g in GEOMETRY_TYPES)})",
+            name="ck_geofence_zones_geometry_type",
+        ),
+    )
+
+    id = Column(Integer, primary_key=True)
+    owner_user = Column(String, nullable=False, index=True)
+    name = Column(String, nullable=False)
+    geometry_type = Column(String, nullable=False, default="circle")
+    center_lat = Column(Float, nullable=False)
+    center_lon = Column(Float, nullable=False)
+    radius_m = Column(Float, nullable=False)
+    active = Column(Boolean, nullable=False, default=True)
+    created_at = Column(
+        DateTime, nullable=False, default=lambda: datetime.now(timezone.utc)
+    )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "owner_user": self.owner_user,
+            "name": self.name,
+            "geometry_type": self.geometry_type,
+            "center_lat": self.center_lat,
+            "center_lon": self.center_lon,
+            "radius_m": self.radius_m,
+            "active": bool(self.active),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

@@ -71,7 +71,7 @@ CORS(
     resources={
         r"/api/*": {
             **_cors_common,
-            "methods": ["GET", "POST", "DELETE", "OPTIONS"],
+            "methods": ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
             "expose_headers": ["Content-Type", "Sunset", "Deprecation", "Link"],
         },
         r"/auth/*": {**_cors_common, "methods": ["GET", "POST", "PATCH", "OPTIONS"]},
